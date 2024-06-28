@@ -44,6 +44,7 @@ def new_user_registered_signal(sender, instance, created, **kwargs):
         )
         msg.send()
 
+
 @receiver(new_order)
 def new_order_signal(sender, **kwargs):
     """

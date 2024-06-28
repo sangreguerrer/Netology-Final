@@ -93,6 +93,7 @@ class User(AbstractUser):
     )
     type = models.CharField(verbose_name='Тип пользователя', choices=USER_TYPE_CHOICES, max_length=5, default='buyer')
     image = models.OneToOneField(Image, on_delete=models.CASCADE, blank=True, null=True)
+
     def __str__(self):
         return f'{self.first_name} {self.last_name}'
 
@@ -105,8 +106,8 @@ class User(AbstractUser):
 class Brand(models.Model):
     name = models.CharField(max_length=200, unique=True)
     country = models.CharField(max_length=200, blank=True, null=True)
-    email = models.EmailField(max_length=200,unique=True, blank=True, null=True)
-    url = models.URLField(max_length=300,unique=True, blank=True, null=True)
+    email = models.EmailField(max_length=200, unique=True, blank=True, null=True)
+    url = models.URLField(max_length=300, unique=True, blank=True, null=True)
     image = models.OneToOneField(Image, on_delete=models.CASCADE, null=True, blank=True)
     slug = models.SlugField(max_length=150, blank=True, null=True)
 
@@ -230,7 +231,6 @@ class ProductInfo(models.Model):
         blank=True, null=True,
         on_delete=models.SET_NULL)
 
-
     class Meta:
         verbose_name = 'Информация о продукте'
         verbose_name_plural = "Информационный список о продуктах"
@@ -285,8 +285,8 @@ class Contact(models.Model):
     city = models.CharField(max_length=50, verbose_name='Город')
     street = models.CharField(max_length=150, verbose_name='Улица')
     house = models.CharField(max_length=15, verbose_name='Дом')
-    structure = models.CharField(max_length=15, verbose_name='Корпус')
-    building = models.CharField(max_length=15, verbose_name='Строение')
+    structure = models.CharField(max_length=15, verbose_name='Корпус', blank=True)
+    building = models.CharField(max_length=15, verbose_name='Строение', blank=True)
     apartment = models.CharField(max_length=10, verbose_name='Квартира')
     phone = models.CharField(max_length=11, verbose_name='Телефон')
 

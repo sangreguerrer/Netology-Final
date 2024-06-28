@@ -1,12 +1,10 @@
 from distutils.util import strtobool
 
 import yaml
-from django.contrib.auth.hashers import check_password
 from django.contrib.auth import authenticate
 from django.core.validators import URLValidator
 from django.db import IntegrityError
 from django.http import JsonResponse
-from django.shortcuts import render
 from requests import get
 from rest_framework import status
 from django.core.exceptions import ValidationError
@@ -14,37 +12,19 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.request import Request
-from rest_framework.decorators import permission_classes, api_view
+from rest_framework.decorators import api_view
 from rest_framework.authtoken.models import Token
-from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 from django.contrib.auth.password_validation import validate_password
-from yaml import load, Loader, safe_load
+from yaml import safe_load
+from django.db.models import Q, Sum, F
+from ujson import loads as load_json
 
 from .models import User, ConfirmEmailToken, Category, Shop, ProductInfo, Product, Order, OrderItem, ProductParameter, \
     Parameter, Contact, Brand
 from .serializers import UserSerializer, CategorySerializer, ShopSerializer, ProductInfoSerializer, OrderSerializer, \
     OrderItemSerializer, ContactSerializer, BrandSerializer
-from .signals import new_order, new_user_registered
-from .forms import ImageForm
-# from .permissions import IsOwnerOrReadOnly, IsShopOwner
-from django.db.models import Q, Sum, F
-from ujson import loads as load_json
-
-
-# @permission_classes((IsAuthenticated,))
-def image_upload_view(request):
-    """Process images uploaded by users"""
-    if request.method == 'POST':
-        form = ImageForm(request.POST, request.FILES)
-        if form.is_valid():
-            form.save()
-            # Get the current instance object to display in the template
-            img_obj = form.instance
-            return render(request, 'index.html', {'form': form, 'img_obj': img_obj})
-    else:
-        form = ImageForm()
-    return render(request, 'index.html', {'form': form})
+from .signals import new_order
 
 
 class RegisterView(APIView):
@@ -68,7 +48,10 @@ class RegisterView(APIView):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return JsonResponse({'Status': True, 'Message': 'User registered successfully'}, status=status.HTTP_201_CREATED)
+            return JsonResponse(
+                {'Status': True, 'Message': 'User registered successfully'},
+                status=status.HTTP_201_CREATED
+            )
         return JsonResponse({'Status': False, 'Errors': serializer.errors}, status='404')
 
 
@@ -125,6 +108,7 @@ class AccountDetails(APIView):
     - get: Retrieve the details of the authenticated user.
     - post: Update the account details of the authenticated user.
     """
+
     #get info
     def get(self, request: Request, *args, **kwargs):
         """
@@ -192,9 +176,10 @@ class BrandView(APIView):
           - get: Retrieve the list of brands.
           - post: Add a new brand.
     """
+
     def get(self, request, *args, **kwargs):
-        brand = Brand.objects.all()
-        serializer = BrandSerializer(brand, many=True)
+        queryset = Brand.objects.all()
+        serializer = BrandSerializer(queryset, many=True)
         return Response(serializer.data)
 
     def post(self, request, *args, **kwargs):
@@ -218,7 +203,7 @@ class CategoryView(ListAPIView):
       Methods:
           - get: Retrieve the list of categories.
     """
-    category = Category.objects.all()
+    queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
 
@@ -228,7 +213,7 @@ class ShopView(ListAPIView):
       Methods:
           - get: Retrieve the list of shops.
     """
-    shop = Shop.objects.filter(state=True)
+    queryset = Shop.objects.filter(state=True)
     serializer_class = ShopSerializer
 
 
@@ -247,16 +232,16 @@ def product_view(request, *args, **kwargs):
     shop_id = request.query_params.get('shop_id')
     category_id = request.query_params.get('category_id')
     brand_id = request.query_params.get('brand_id')
-    brand_name = request.query_params.get('brand_name')
+    brand = request.query_params.get('brand')
 
     if shop_id:
         query = query & Q(shop_id=shop_id)
 
+    if brand:
+        query = query & Q(brand__name=brand)
+
     if brand_id:
         query = query & Q(brand_id=brand_id)
-
-    if brand_name:
-        query = query & Q(brand__name=brand_name)
 
     if category_id:
         query = query & Q(product__category_id=category_id)
@@ -281,16 +266,17 @@ class BasketView(APIView):
     Attributes:
     - None
     """
-    def get(self,request, *args, **kwargs):
+
+    def get(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
         orders = Order.objects.filter(
-            user_id=request.user.id, state=True
+            user_id=request.user.id, state='basket'
         ).prefetch_related(
-            'order_items__product_infos__product__category',
-            'order_items__product_infos__product__brand',
-            'order_items__product_infos__product_parameter__parameter'
-        ).annotate(total_sum=Sum(F('order_items__quantity') * F('order_items__product_infos__price'))).distinct()
+            'order_items__product_info__product__category',
+            'order_items__product_info__brand',
+            'order_items__product_info__product_parameter__parameter'
+        ).annotate(total_sum=Sum(F('order_items__quantity') * F('order_items__product_info__price'))).distinct()
         serializer = OrderSerializer(orders, many=True)
         return Response(serializer.data)
 
@@ -317,9 +303,9 @@ class BasketView(APIView):
             else:
                 basket, _ = Order.objects.get_or_create(user_id=request.user.id, state='basket')
                 objects_created = 0
-                for order_item in items:
-                    order_item.update({'order': basket.id})
-                    serializer = OrderItemSerializer(data=order_item)
+                for order_items in items:
+                    order_items.update({'order': basket.id})
+                    serializer = OrderItemSerializer(data=order_items)
                     if serializer.is_valid():
                         try:
                             serializer.save()
@@ -330,9 +316,10 @@ class BasketView(APIView):
                     else:
                         return JsonResponse({'Status': False, 'Errors': serializer.errors})
                 return JsonResponse({'Status': True, 'Создано объектов': objects_created})
+
             return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
 
-    def delete(self,request, *args, **kwargs):
+    def delete(self, request, *args, **kwargs):
         """
         Remove  items from the user's basket.
 
@@ -352,7 +339,7 @@ class BasketView(APIView):
             objects_deleted = False
             for item in item_list:
                 if item.isdigit():
-                    query = query | Q(order_id=basket.id, id=item.id)
+                    query = query | Q(order_id=basket.id, id=item)
                     objects_deleted = True
             if objects_deleted:
                 deleted = OrderItem.objects.filter(query).delete()[0]
@@ -383,9 +370,9 @@ class BasketView(APIView):
                 basket, _ = Order.objects.get_or_create(user_id=request.user.id, state='basket')
                 objects_updated = 0
                 for item in item_dict:
-                    if type(item['id']) == int and type(item['quantity']) == int:
+                    if isinstance(item['id'], int) and isinstance(item['quantity'], int):
                         objects_updated += OrderItem.objects.filter(
-                            order_id=basket.id,id=item['id']
+                            order_id=basket.id, id=item['id']
                         ).update(quantity=item['quantity'])
                 return JsonResponse({'Status': True, 'Обновлено объектов': objects_updated})
         return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
@@ -429,11 +416,11 @@ def partner_update(request, *args, **kwargs):
                 category_obj.save()
             ProductInfo.objects.filter(shop_id=shop.id).delete()
             for product in yaml_file['goods']:
-                # brand, _ = Brand.objects.get_or_create(name=product['brand'])
+                brand, _ = Brand.objects.get_or_create(name=product['brand'])
                 product_obj, _ = Product.objects.get_or_create(name=product['name'], category=category_obj)
                 product_info, _ = ProductInfo.objects.get_or_create(
                     model=product['model'],
-                    # brand=brand,
+                    brand=brand,
                     product_id=product_obj.id,
                     shop_id=shop.id,
                     external_id=product['id'],
@@ -462,6 +449,7 @@ class PartnerState(APIView):
         Returns:
         - Response: The response containing the state of the partner.
     """
+
     def get(self, request, *args, **kwargs):
 
         if not request.user.is_authenticated:
@@ -516,14 +504,14 @@ class PartnerOrders(APIView):
 
         if request.user.type != 'shop':
             return JsonResponse({'Status': False, 'Error': 'Только для магазинов'}, status=403)
-        orders = Order.objects.filter(
-            order_items__product_infos__shop__user_id=request.user.id).exclude(state='basket').prefetch_related(
-            'order_items__product_infos__product__category',
-            'order_items__product_infos__product_parameter__parameter').annotate(
-            total_sum=Sum(F('order_items__quantity') * F('order_items__product_infos__price'))).distinct()
+        queryset = Order.objects.filter(
+            order_items__product_info__shop__user_id=request.user.id).exclude(state='basket').prefetch_related(
+            'order_items__product_info__product__category',
+            'order_items__product_info__product_parameter__parameter').annotate(
+            total_sum=Sum(F('order_items__quantity') * F('order_items__product_info__price'))).distinct()
 
-        serilizer = OrderSerializer(orders, many=True)
-        return Response(serilizer.data)
+        serializer = OrderSerializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class ContactView(APIView):
@@ -551,8 +539,8 @@ class ContactView(APIView):
         if not request.user.is_authenticated:
             return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
 
-        contact = Contact.objects.filter(user_id=request.user.id)
-        serializer = ContactSerializer(contact, many=True)
+        queryset = Contact.objects.filter(user_id=request.user.id)
+        serializer = ContactSerializer(queryset, many=True)
         return Response(serializer.data)
 
     def post(self, request, *args, **kwargs):
@@ -570,8 +558,8 @@ class ContactView(APIView):
         if not required_args.issubset(request.data.keys()):
             missing_fields = required_args - request.data.keys()
             return JsonResponse(
-            {'Status': False, 'Error': f'Missing fields: {", ".join(missing_fields)}'},
-        )
+                {'Status': False, 'Error': f'Missing fields: {", ".join(missing_fields)}'},
+            )
         request.data._mutable = True
         request.data.update({"user": request.user.id})
         serilizer = ContactSerializer(data=request.data)
@@ -579,9 +567,9 @@ class ContactView(APIView):
             serilizer.save()
             return Response(serilizer.data)
         else:
-            return Response({'status':False,'Errors':serilizer.errors})
+            return Response({'status': False, 'Errors': serilizer.errors})
 
-    def delete(self,request, *args, **kwargs):
+    def delete(self, request, *args, **kwargs):
         """
         Delete the contact of the authenticated user.
         :param request:
@@ -594,12 +582,11 @@ class ContactView(APIView):
         items_string = request.data.get('items')
         if items_string:
             items = items_string.split(',')
-            contact, _ = Contact.objects.get_or_create(user_id=request.user.id)
             query = Q()
             object_deleted = False
             for item in items:
                 if item.isdigit():
-                    query = query | Q(user_id=request.user.id, contact_id=item.id)
+                    query = query | Q(user_id=request.user.id, id=item)
                     object_deleted = True
                     if object_deleted:
                         deleted = Contact.objects.filter(query).delete()[0]
@@ -619,13 +606,13 @@ class ContactView(APIView):
 
         if 'id' in request.data:
             if request.data['id'].isdigit():
-                contact = Contact.objects.filter(contact_id=request.data['id'], user_id=request.user.id).first()
-                serilizer = ContactSerializer(contact, data=request.data, partiial=True)
+                queryset = Contact.objects.filter(id=request.data['id'], user_id=request.user.id).first()
+                serilizer = ContactSerializer(queryset, data=request.data, partial=True)
                 if serilizer.is_valid():
                     serilizer.save()
                     return Response(serilizer.data)
                 else:
-                    return Response({'status':False, 'Errors':serilizer.errors})
+                    return Response({'status': False, 'Errors': serilizer.errors})
 
         return JsonResponse({'Status': False, 'Error': 'Не указаны все необходимые аргументы'})
 
@@ -642,6 +629,7 @@ class OrdersView(APIView):
     Attributes:
     - None
     """
+
     def get(self, request, *args, **kwargs):
         """
         Retrieve the details of a specific order.
@@ -654,10 +642,10 @@ class OrdersView(APIView):
             return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
 
         orders = Order.objects.filter(user_id=request.user.id).exclude(state='basket').prefetch_related(
-            'order_items__product_infos__product__category',
-            'order_items__product_infos__product__brand',
-            'order_items__product_infos__product_parameter__parameter').annotate(
-            total_sum=Sum(F('order_items__quantity') * F('order_items__product_infos__price'))).distinct()
+            'order_items__product_info__product__category',
+            'order_items__product_info__product__brand',
+            'order_items__product_info__product_parameter__parameter').annotate(
+            total_sum=Sum(F('order_items__quantity') * F('order_items__product_info__price'))).distinct()
 
         serializer = OrderSerializer(orders, many=True)
         return Response(serializer.data)
@@ -677,17 +665,14 @@ class OrdersView(APIView):
             if request.data['id'].isdigit():
                 try:
                     is_updated = Order.objects.filter(
-                        id=request.data['id'],
-                        user_id=request.user.id).first().update(contact_id=request.data['contact'], state='new')
+                        user_id=request.user.id,
+                        id=request.data['id']).update(contact_id=request.data['contact'], state='new')
                 except IntegrityError as err:
                     return JsonResponse({'Status': False, 'Error': str(err)})
                 else:
                     if is_updated:
-                        new_order.send(self.__class__, user_id=request.user.id)
+                        new_order.send(sender=request.user.id, user_id=request.user.id)
                         return JsonResponse({'Status': True})
                     else:
                         return JsonResponse({'Status': False, 'Error': 'Заказ не найден'})
         return JsonResponse({'Status': False, 'Error': 'Не указаны все необходимые аргументы'})
-
-
-
