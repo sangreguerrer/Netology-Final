@@ -90,7 +90,12 @@ class UserDetailsSerializer(UserSerializer):
     def validate(self, attrs):
         if 'password' and 'password2' in attrs:
             return super().validate(attrs)
+        elif 'password' in attrs and 'password2' not in attrs:
+            raise serializers.ValidationError({'password2': 'This field is required.'})
+        elif 'password2' in attrs and 'password' not in attrs:
+            raise serializers.ValidationError({'password': 'This field is required.'})
         return attrs
+
 
 
 class BrandSerializer(serializers.ModelSerializer):
