@@ -58,13 +58,6 @@ class UserSerializer(serializers.ModelSerializer):
             user.save()
         return user
 
-    def update(self, instance, validated_data):
-        image_data = validated_data.pop('image', None)
-        if image_data:
-            image = Image.objects.create(image=image_data, title=f"{instance.username}'s image")
-            instance.image = image
-        return super().update(instance, validated_data)
-
     def validate(self, attrs):
         password = attrs.get('password')
         password2 = attrs.get('password2')
@@ -80,6 +73,7 @@ class UserSerializer(serializers.ModelSerializer):
 class UserDetailsSerializer(UserSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password], required=False)
     password2 = serializers.CharField(write_only=True, required=False)
+    image = serializers.ImageField(write_only=True, required=False)
 
     class Meta:
         model = User
@@ -87,15 +81,21 @@ class UserDetailsSerializer(UserSerializer):
                   )
         read_only_fields = ('id',)
 
+    def update(self, instance, validated_data):
+        image_data = validated_data.pop('image', None)
+        if image_data:
+            image = Image.objects.create(image=image_data, title=f"{instance.username}'s image")
+            instance.image = image
+        return super().update(instance, validated_data)
+
     def validate(self, attrs):
         if 'password' and 'password2' in attrs:
-            return super().validate(attrs)
+            super().validate(attrs)
         elif 'password' in attrs and 'password2' not in attrs:
             raise serializers.ValidationError({'password2': 'This field is required.'})
         elif 'password2' in attrs and 'password' not in attrs:
             raise serializers.ValidationError({'password': 'This field is required.'})
         return attrs
-
 
 
 class BrandSerializer(serializers.ModelSerializer):

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.core.validators import MinValueValidator
@@ -61,7 +63,7 @@ class UserManager(BaseUserManager):
 
 
 class Image(models.Model):
-    title = models.CharField(max_length=200)
+    title = models.CharField(max_length=200, default=datetime.now())
     image = models.ImageField(upload_to='images/')
 
     def __str__(self):
