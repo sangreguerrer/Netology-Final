@@ -32,12 +32,13 @@ class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True)
     image = serializers.ImageField(write_only=True, required=False)
-    contacts = ContactSerializer(many=True, read_only=True)
+    contacts = ContactSerializer(many=True, read_only=True, required=False)
 
     class Meta:
         model = User
         fields = [
-            'id', 'email', 'first_name', 'last_name', 'username', 'password', 'password2', 'is_active', 'type', 'image'
+            'id', 'email', 'first_name', 'last_name', 'username', 'password', 'password2', 'is_active', 'type', 'image',
+            'contacts'
         ]
         read_only_fields = ('id',)
 
@@ -76,6 +77,22 @@ class UserSerializer(serializers.ModelSerializer):
         return attrs
 
 
+class UserDetailsSerializer(UserSerializer):
+    password = serializers.CharField(write_only=True, validators=[validate_password], required=False)
+    password2 = serializers.CharField(write_only=True, required=False)
+
+    class Meta:
+        model = User
+        fields = ('id', 'first_name', 'last_name', 'username', 'password', 'password2', 'is_active', 'type', 'image',
+                  )
+        read_only_fields = ('id',)
+
+    def validate(self, attrs):
+        if 'password' and 'password2' in attrs:
+            return super().validate(attrs)
+        return attrs
+
+
 class BrandSerializer(serializers.ModelSerializer):
     image = serializers.ImageField(required=False)
 
@@ -86,7 +103,6 @@ class BrandSerializer(serializers.ModelSerializer):
 
 
 class BrandRelatedSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Brand
         fields = ('name',)

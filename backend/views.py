@@ -23,7 +23,7 @@ from ujson import loads as load_json
 from .models import User, ConfirmEmailToken, Category, Shop, ProductInfo, Product, Order, OrderItem, ProductParameter, \
     Parameter, Contact, Brand
 from .serializers import UserSerializer, CategorySerializer, ShopSerializer, ProductInfoSerializer, OrderSerializer, \
-    OrderItemSerializer, ContactSerializer, BrandSerializer
+    OrderItemSerializer, ContactSerializer, BrandSerializer, UserDetailsSerializer
 from .signals import new_order
 
 
@@ -155,7 +155,7 @@ class AccountDetails(APIView):
                     {'Status': False, 'Error': 'invalid password'},
                     status=status.HTTP_403_FORBIDDEN)
         #saving changes
-        user_serializer = UserSerializer(request.user, data=request.data, partial=True)
+        user_serializer = UserDetailsSerializer(request.user, data=request.data, partial=True)
         if user_serializer.is_valid():
             user_serializer.save()
             return JsonResponse(
@@ -643,7 +643,7 @@ class OrdersView(APIView):
 
         orders = Order.objects.filter(user_id=request.user.id).exclude(state='basket').prefetch_related(
             'order_items__product_info__product__category',
-            'order_items__product_info__product__brand',
+            'order_items__product_info__brand',
             'order_items__product_info__product_parameter__parameter').annotate(
             total_sum=Sum(F('order_items__quantity') * F('order_items__product_info__price'))).distinct()
 
