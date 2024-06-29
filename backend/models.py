@@ -69,6 +69,10 @@ class Image(models.Model):
     def __str__(self):
         return self.title
 
+    class Meta:
+        verbose_name = 'Изображение'
+        verbose_name_plural = 'Изображения'
+
 
 class User(AbstractUser):
     """
@@ -94,7 +98,7 @@ class User(AbstractUser):
                     ),
     )
     type = models.CharField(verbose_name='Тип пользователя', choices=USER_TYPE_CHOICES, max_length=5, default='buyer')
-    image = models.OneToOneField(Image, on_delete=models.CASCADE, blank=True, null=True)
+    image = models.OneToOneField(Image, on_delete=models.CASCADE, blank=True, verbose_name='Ава кул', null=True)
 
     def __str__(self):
         return f'{self.first_name} {self.last_name}'
@@ -110,7 +114,7 @@ class Brand(models.Model):
     country = models.CharField(max_length=200, blank=True, null=True)
     email = models.EmailField(max_length=200, unique=True, blank=True, null=True)
     url = models.URLField(max_length=300, unique=True, blank=True, null=True)
-    image = models.OneToOneField(Image, on_delete=models.CASCADE, null=True, blank=True)
+    image = models.OneToOneField(Image, on_delete=models.CASCADE,verbose_name='Изображение', null=True, blank=True)
     slug = models.SlugField(max_length=150, blank=True, null=True)
 
     def save(self, *args, **kwargs):
@@ -220,6 +224,7 @@ class ProductInfo(models.Model):
     price = models.DecimalField(
         max_digits=18,
         decimal_places=2,
+        verbose_name='Цена',
         validators=[MinValueValidator(0)]
     )
     price_rrc = models.DecimalField(
@@ -231,6 +236,7 @@ class ProductInfo(models.Model):
     image = models.OneToOneField(
         Image,
         blank=True, null=True,
+        verbose_name='Изображение',
         on_delete=models.SET_NULL)
 
     class Meta:
@@ -246,7 +252,7 @@ class Parameter(models.Model):
 
     class Meta:
         verbose_name = 'Имя параметра'
-        verbose_name_plural = 'Список миён параметров'
+        verbose_name_plural = 'Список параметров'
         ordering = ('-name',)
 
     def __str__(self):
@@ -272,7 +278,7 @@ class ProductParameter(models.Model):
 
     class Meta:
         verbose_name = 'Параметр продукта'
-        verbose_name_plural = 'Список параметров'
+        verbose_name_plural = 'Параметры продуктов'
         constraints = [models.UniqueConstraint(fields=['product_info', 'parameter'], name='unique_product_parameter')]
 
 

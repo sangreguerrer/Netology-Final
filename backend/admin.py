@@ -6,16 +6,17 @@ from backend.models import User, Shop, Category, Product, ProductInfo, Parameter
     Contact, ConfirmEmailToken, Brand, Image
 
 
-@admin.register(User)
 class CustomUserAdmin(UserAdmin):
     model = User
     list_filter = ('is_staff', 'is_superuser', 'is_active', 'type', 'image')
     list_display = ('email', 'image', 'first_name', 'last_name', 'is_active', 'is_staff', 'is_superuser')
 
 
-class UserInline(admin.StackedInline):
+class UserInline(admin.TabularInline):
     model = User
-    fk_name = 'image'
+    list_filter = ('is_staff', 'is_superuser', 'is_active', 'type', 'image')
+    list_display = ('email', 'image', 'first_name', 'last_name', 'is_active', 'is_staff', 'is_superuser')
+
 
 @admin.register(Image)
 class Images(admin.ModelAdmin):
@@ -24,11 +25,22 @@ class Images(admin.ModelAdmin):
     inlines = [UserInline]
 
 
+class ProductInfoInline(admin.TabularInline):
+    model = ProductInfo
+    fields = ['product', 'model', 'brand', 'shop', 'external_id', 'quantity', 'price', 'price_rrc', 'image']
 
 
+@admin.register(Product)
+class ProductAdmin(admin.ModelAdmin):
+    model = Product
+    list_display = ('name', 'category')
+    inlines = [ProductInfoInline]
 
 
 @admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    model = Category
+    fields = ("name", "shops")
 
 
 @admin.register(Shop)
@@ -38,3 +50,8 @@ class ShopAdmin(admin.ModelAdmin):
 
 
 
+admin.site.register(ProductParameter)
+admin.site.register(Parameter)
+admin.site.register(Contact)
+admin.site.register(Brand)
+admin.site.register(User)
