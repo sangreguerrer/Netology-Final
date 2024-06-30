@@ -18,14 +18,12 @@ class UserInline(admin.TabularInline):
     list_display = ('email', 'image', 'first_name', 'last_name', 'is_active', 'is_staff', 'is_superuser')
 
 
-@admin.register(Image)
-class Images(admin.ModelAdmin):
-    model = Image
-    fields = ('title', 'image')
-    inlines = [UserInline]
+class BrandAdminInline(admin.TabularInline):
+    model = Brand
+    fields = ("name", "country", "email", "url", "image")
 
 
-class ProductInfoInline(admin.TabularInline):
+class ProductInfoAdmin(admin.ModelAdmin):
     model = ProductInfo
     fields = ['product', 'model', 'brand', 'shop', 'external_id', 'quantity', 'price', 'price_rrc', 'image']
 
@@ -34,7 +32,6 @@ class ProductInfoInline(admin.TabularInline):
 class ProductAdmin(admin.ModelAdmin):
     model = Product
     list_display = ('name', 'category')
-    inlines = [ProductInfoInline]
 
 
 @admin.register(Category)
@@ -49,6 +46,17 @@ class ShopAdmin(admin.ModelAdmin):
     fields = ["user", "name", "address", "state", "image"]
 
 
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
+    model = Order
+    fields = ["user", "contact", "state"]
+    readonly_fields = ("created",)
+
+
+@admin.register(OrderItem)
+class OrderItemAdmin(admin.ModelAdmin):
+    model = OrderItem
+    fields = ["order", "product_info", "quantity"]
 
 admin.site.register(ProductParameter)
 admin.site.register(Parameter)
