@@ -86,6 +86,10 @@ class UserDetailsSerializer(UserSerializer):
         if image_data:
             image = Image.objects.create(image=image_data, title=f"{instance.username}'s image")
             instance.image = image
+        password = validated_data.pop('password', None)
+        if password:
+            instance.set_password(password)
+            instance.save()
         return super().update(instance, validated_data)
 
     def validate(self, attrs):
