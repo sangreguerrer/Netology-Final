@@ -6,19 +6,13 @@ from backend.models import User, Shop, Category, Product, ProductInfo, Parameter
     Contact, ConfirmEmailToken, Brand, Image
 
 
+@admin.register(User)
 class CustomUserAdmin(UserAdmin):
     model = User
-    list_filter = ('is_staff', 'is_superuser', 'is_active', 'type', 'image')
-    list_display = ('email', 'image', 'first_name', 'last_name', 'is_active', 'is_staff', 'is_superuser')
+    list_filter = ('is_staff', 'is_superuser', 'is_active', 'type',)
 
 
-class UserInline(admin.TabularInline):
-    model = User
-    list_filter = ('is_staff', 'is_superuser', 'is_active', 'type', 'image')
-    list_display = ('email', 'image', 'first_name', 'last_name', 'is_active', 'is_staff', 'is_superuser')
-
-
-class BrandAdminInline(admin.TabularInline):
+class BrandAdmin(admin.ModelAdmin):
     model = Brand
     fields = ("name", "country", "email", "url", "image")
 
@@ -62,4 +56,3 @@ admin.site.register(ProductParameter)
 admin.site.register(Parameter)
 admin.site.register(Contact)
 admin.site.register(Brand)
-admin.site.register(User)

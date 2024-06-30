@@ -98,7 +98,7 @@ class User(AbstractUser):
                     ),
     )
     type = models.CharField(verbose_name='Тип пользователя', choices=USER_TYPE_CHOICES, max_length=5, default='buyer')
-    image = models.OneToOneField(Image, on_delete=models.CASCADE, blank=True, verbose_name='Ава кул', null=True)
+    image = models.OneToOneField(Image, on_delete=models.CASCADE, blank=True, verbose_name='Кул ава', null=True)
 
     def __str__(self):
         return f'{self.first_name} {self.last_name}'

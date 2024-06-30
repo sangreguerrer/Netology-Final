@@ -24,7 +24,7 @@ def password_reset_token_created(sender, instance, reset_password_token, **kwarg
         f"Reset password token for: {reset_password_token.user}",
         reset_password_token.key,
         settings.EMAIL_HOST_USER,
-        [reset_password_token.user.email])
+        reset_password_token.user.email)
     msg = EmailMultiAlternatives(subject, message, from_email, [to])
     msg.send()
 
