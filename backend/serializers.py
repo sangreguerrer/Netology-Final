@@ -193,6 +193,17 @@ class OrderItemSerializer(serializers.ModelSerializer):
             'order': {'write_only': True}
         }
 
+        def create(self, validated_data):
+            try:
+            # Получаем экземпляр Order из validated_data
+                order = validated_data.pop('order')
+            # Создаем экземпляр OrderItem с данными из validated_data
+                order_item = OrderItem.objects.create(**validated_data, order=order)
+            except Exception as e:
+                print(f"Error creating OrderItem: {e}")
+                return None
+            return order_item
+
 
 class OrderItemCreateSerializer(OrderItemSerializer):
     product_info = ProductInfoSerializer(read_only=True)

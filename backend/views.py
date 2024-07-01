@@ -247,7 +247,7 @@ def product_view(request, *args, **kwargs):
         query = query & Q(product__category_id=category_id)
 
     queryset = ProductInfo.objects.filter(query).select_related(
-        'shop', 'product__category', 'brand', 'image').prefetch_related('product_parameter__parameter').distinct(
+        'shop', 'product__category', 'brand', 'image').prefetch_related('product', 'product_parameter__parameter').distinct(
     )
     serializer = ProductInfoSerializer(queryset, many=True)
     return Response(serializer.data)
