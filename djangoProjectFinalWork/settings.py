@@ -87,7 +87,7 @@ DATABASES = {
         'HOST': os.getenv('DB_HOST'),
         'PORT': os.getenv('DB_PORT'),
         'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD','SomePasswd'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
     }
 }
 
@@ -162,6 +162,11 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+
 INTERNAL_IPS = [
     "127.0.0.1",
 ]
+
+
+CELERY_BROKER_URL = os.environ.get("BROKER_URL", "redis://redis:6379/0")
+CELERY_RESULT_BACKEND = os.environ.get("RESULT_BACKEND", "redis://redis:6379/0")

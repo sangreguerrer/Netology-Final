@@ -51,6 +51,7 @@ class CategoryAdmin(admin.ModelAdmin):
 @admin.register(Shop)
 class ShopAdmin(admin.ModelAdmin):
     model = Shop
+    list_filter = ('state', 'user')
     fields = ["user", "name", "address", "state", "image"]
 
 

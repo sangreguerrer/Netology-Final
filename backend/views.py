@@ -1,5 +1,5 @@
 from distutils.util import strtobool
-
+import celery
 import yaml
 from django.contrib.auth import authenticate
 from django.core.validators import URLValidator
