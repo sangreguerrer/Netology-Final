@@ -110,11 +110,11 @@ class User(AbstractUser):
 
 
 class Brand(models.Model):
-    name = models.CharField(max_length=200, unique=True)
+    name = models.CharField(max_length=200, unique=True, null=True)
     country = models.CharField(max_length=200, blank=True, null=True)
     email = models.EmailField(max_length=200, unique=True, blank=True, null=True)
     url = models.URLField(max_length=300, unique=True, blank=True, null=True)
-    image = models.OneToOneField(Image, on_delete=models.CASCADE,verbose_name='Изображение', null=True, blank=True)
+    image = models.OneToOneField(Image, on_delete=models.CASCADE, verbose_name='Изображение', null=True, blank=True)
     slug = models.SlugField(max_length=150, blank=True, null=True)
 
     def save(self, *args, **kwargs):

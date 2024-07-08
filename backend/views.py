@@ -1,11 +1,8 @@
 from distutils.util import strtobool
-import celery
-import yaml
+from djangoProjectFinalWork.tasks import do_import
 from django.contrib.auth import authenticate
-from django.core.validators import URLValidator
 from django.db import IntegrityError
 from django.http import JsonResponse
-from requests import get
 from rest_framework import status
 from django.core.exceptions import ValidationError
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -16,12 +13,10 @@ from rest_framework.decorators import api_view
 from rest_framework.authtoken.models import Token
 from rest_framework.views import APIView
 from django.contrib.auth.password_validation import validate_password
-from yaml import safe_load
 from django.db.models import Q, Sum, F
 from ujson import loads as load_json
 
-from .models import User, ConfirmEmailToken, Category, Shop, ProductInfo, Product, Order, OrderItem, ProductParameter, \
-    Parameter, Contact, Brand
+from .models import ConfirmEmailToken, Category, Shop, ProductInfo, Order, OrderItem, Contact, Brand
 from .serializers import UserSerializer, CategorySerializer, ShopSerializer, ProductInfoSerializer, OrderSerializer, \
     OrderItemSerializer, ContactSerializer, BrandSerializer, UserDetailsSerializer
 from .signals import new_order
@@ -31,10 +26,14 @@ class RegisterView(APIView):
     parser_classes = (MultiPartParser, FormParser)
 
     def post(self, request, *args, **kwargs):
+        """
+        Register a new user
+        Args:
+            - request (Request): The Django request object includes in body(
+            'email', 'first_name', 'last_name', 'username', 'password', 'password2', 'type', 'image'(optional)
+            ).
+        """
         required_args = {'email', 'first_name', 'last_name', 'username', 'password', 'password2', 'type'}
-        """
-        A view that registers users.
-        """
         if not required_args.issubset(request.data.keys()):
             missing_fields = required_args - request.data.keys()
             return JsonResponse(
@@ -57,6 +56,15 @@ class RegisterView(APIView):
 
 @api_view(['POST'])
 def confirm_acc(request: Request, *args, **kwargs):
+    """
+    Confirm email
+    The created token must be passed in the request body
+    and the user get "is_active" state
+    Args:
+        - request (Request): The Django request object, includes in body('email', 'token').
+    Returns:
+        - JsonResponse: The response indicating the status of the operation and any errors.
+    """
     required_args = {'email', 'token'}
     if not required_args.issubset(request.data.keys()):
         missing_fields = required_args - request.data.keys()
@@ -81,6 +89,9 @@ def confirm_acc(request: Request, *args, **kwargs):
 
 @api_view(['POST'])
 def login(request, *args, **kwargs):
+    """
+    The user must pass email and password to get auth token. Body must contain 'email' and 'password'
+    """
     required_args = {'email', 'password'}
     if not required_args.issubset(request.data.keys()):
         missing_fields = required_args - request.data.keys()
@@ -101,21 +112,13 @@ def login(request, *args, **kwargs):
 
 class AccountDetails(APIView):
     parser_classes = (MultiPartParser, FormParser)
-    """
-    A view that can retrieves and updates account details
 
-    Methods:
-    - get: Retrieve the details of the authenticated user.
-    - post: Update the account details of the authenticated user.
-    """
-
-    #get info
     def get(self, request: Request, *args, **kwargs):
         """
           Retrieve the details of the authenticated user.
 
           Args:
-          - request (Request): The Django request object.
+          - request (Request): The Django request object including in Authorization header('Authorization',Token 'token').
 
           Returns:
           - Response: The response containing the details of the authenticated user.
@@ -126,13 +129,12 @@ class AccountDetails(APIView):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
 
-    #update parameters
     def post(self, request, *args, **kwargs):
         """
         Update the account details of the authenticated user.
 
         Args:
-        - request (Request): The Django request object.
+        - request (Request): The Django request object including in Authorization header('Authorization',Token 'token')
 
         Returns:
         - JsonResponse: The response indicating the status of the operation and any errors.
@@ -140,11 +142,9 @@ class AccountDetails(APIView):
         if not request.user.is_authenticated:
             return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
 
-        #check for password change
         if 'password' in request.data:
             errors = {}
 
-            #password validating for safety
             try:
                 validate_password(request.data['password'])
             except ValidationError as err:
@@ -154,7 +154,6 @@ class AccountDetails(APIView):
                 return JsonResponse(
                     {'Status': False, 'Error': 'invalid password'},
                     status=status.HTTP_403_FORBIDDEN)
-        #saving changes
         user_serializer = UserDetailsSerializer(request.user, data=request.data, partial=True)
         if user_serializer.is_valid():
             user_serializer.save()
@@ -171,10 +170,10 @@ class AccountDetails(APIView):
 
 class BrandView(APIView):
     """
-      Класс для просмотра и добавления брэндов
+      The class for add new brand
       Methods:
           - get: Retrieve the list of brands.
-          - post: Add a new brand.
+          - post: Add a new brand(shops only).
     """
 
     def get(self, request, *args, **kwargs):
@@ -183,6 +182,10 @@ class BrandView(APIView):
         return Response(serializer.data)
 
     def post(self, request, *args, **kwargs):
+        """
+        Add a new brand(shops only).
+        Request must contain 'name' in body and header('Authorization',Token 'token')
+        """
         if not request.user.is_authenticated:
             return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
         if request.user.type != 'shop':
@@ -199,7 +202,7 @@ class BrandView(APIView):
 
 class CategoryView(ListAPIView):
     """
-      Класс для просмотра и добавления категорий
+      The class for actions with categories
       Methods:
           - get: Retrieve the list of categories.
     """
@@ -209,7 +212,7 @@ class CategoryView(ListAPIView):
 
 class ShopView(ListAPIView):
     """
-      Класс для просмотра и добавления магазинов
+      The class for view and additions of shops
       Methods:
           - get: Retrieve the list of shops.
     """
@@ -247,7 +250,8 @@ def product_view(request, *args, **kwargs):
         query = query & Q(product__category_id=category_id)
 
     queryset = ProductInfo.objects.filter(query).select_related(
-        'shop', 'product__category', 'brand', 'image').prefetch_related('product', 'product_parameter__parameter').distinct(
+        'shop', 'product__category', 'brand', 'image').prefetch_related('product',
+                                                                        'product_parameter__parameter').distinct(
     )
     serializer = ProductInfoSerializer(queryset, many=True)
     return Response(serializer.data)
@@ -268,6 +272,15 @@ class BasketView(APIView):
     """
 
     def get(self, request, *args, **kwargs):
+        """
+        Retrieve the items in the user's basket.
+
+        Args:
+        - request (Request): The Django request object including in Authorization header('Authorization',Token 'token'),
+
+        Returns:
+        - Response: The response containing the items in the user's basket.
+        """
         if not request.user.is_authenticated:
             return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
         orders = Order.objects.filter(
@@ -282,14 +295,15 @@ class BasketView(APIView):
 
     def post(self, request, *args, **kwargs):
         """
-               Add an items to the user's basket.
+       Add an items to the user's basket.
 
-               Args:
-               - request (Request): The Django request object.
+       Args:
+       - request (Request): The Django request object including in Authorization header('Authorization',Token 'token'),
+        and in the request body('items': [{product_info: int, quantity: int}]).
 
-               Returns:
-               - JsonResponse: The response indicating the status of the operation and any errors.
-               """
+       Returns:
+       - JsonResponse: The response indicating the status of the operation and any errors.
+       """
         if not request.user.is_authenticated:
             return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
         items_string = request.data.get('items')
@@ -317,14 +331,15 @@ class BasketView(APIView):
                         return JsonResponse({'Status': False, 'Errors': serializer.errors})
                 return JsonResponse({'Status': True, 'Создано объектов': objects_created})
 
-            return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
+        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
 
     def delete(self, request, *args, **kwargs):
         """
         Remove  items from the user's basket.
 
         Args:
-        - request (Request): The Django request object.
+        - request (Request): The Django request object including in Authorization header('Authorization',Token 'token')
+        and in the request body('items': [int]).
 
         Returns:
         - JsonResponse: The response indicating the status of the operation and any errors.
@@ -351,7 +366,8 @@ class BasketView(APIView):
         Update the quantity of an item in the user's basket.
 
         Args:
-        - request (Request): The Django request object.
+        - request (Request): The Django request object including in Authorization header('Authorization',Token 'token')
+        and in the request body Order objects(id) and quantity of them('items': [{id: int, quantity: int}]).
 
         Returns:
         - JsonResponse: The response indicating the status of the operation and any errors.
@@ -381,10 +397,12 @@ class BasketView(APIView):
 @api_view(['POST'])
 def partner_update(request, *args, **kwargs):
     """
-    A class for updating shops.
 
+    A view for updating and addition shops.
     Methods:
-    - post: upload validated goods data.
+
+    - post: upload validated goods data.The authorization token is required. The data must be passed in yaml format via raw link  the request body.
+    for example: url: https://raw.githubusercontent.com/netology-code/python-final-diplom/master/data/shop1.yaml
     """
     if not request.user.is_authenticated:
         return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
@@ -394,60 +412,31 @@ def partner_update(request, *args, **kwargs):
             {'Status': False, 'Error': 'You are not a partner'}
         )
 
-    url = request.data.get('url')
-    if url:
-        validate_url = URLValidator()
-        try:
-            validate_url(url)
-        except ValidationError as err:
-            return JsonResponse(
-                {'Status': False, 'Error': str(err)},
-            )
+    try:
+        user_id = request.user.id
+        if user_id:
+            url = request.data.get('url')
+            if url:
+                # pass this view to celery
+                do_import.delay(user_id, url)
+                return JsonResponse({'Status': user_id})
+            else:
+                return JsonResponse({'Status': False, 'Error': 'No URL'})
         else:
-            try:
-                stream = get(url).content
-                yaml_file = safe_load(stream)
-            except yaml.YAMLError as exc:
-                return JsonResponse({'Status': False, 'Error': f'YAML Error: {exc}'})
-            shop, _ = Shop.objects.get_or_create(name=yaml_file['shop'], user_id=request.user.id)
-            for category in yaml_file['categories']:
-                category_obj, _ = Category.objects.get_or_create(name=category['name'])
-                category_obj.shops.add(shop.id)
-                category_obj.save()
-            ProductInfo.objects.filter(shop_id=shop.id).delete()
-            for product in yaml_file['goods']:
-                brand, _ = Brand.objects.get_or_create(name=product['brand'])
-                product_obj, _ = Product.objects.get_or_create(name=product['name'], category=category_obj)
-                product_info, _ = ProductInfo.objects.get_or_create(
-                    model=product['model'],
-                    brand=brand,
-                    product_id=product_obj.id,
-                    shop_id=shop.id,
-                    external_id=product['id'],
-                    quantity=product['quantity'],
-                    price=product['price'],
-                    price_rrc=product['price_rrc']
-                )
-                for name, value in product['parameters'].items():
-                    parameter_obj, _ = Parameter.objects.get_or_create(name=name)
-                    ProductParameter.objects.create(
-                        product_info_id=product_info.id,
-                        parameter_id=parameter_obj.id,
-                        value=value,
-                    )
-            return JsonResponse({'Status': True})
-    return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
+            return JsonResponse({'Status': False, 'Error': 'No user'})
+    except ValidationError as e:
+        return JsonResponse({'Status': False, 'Error': {e}})
 
 
 class PartnerState(APIView):
     """
-        Retrieve the state of the partner.
+    Retrieve the state of the partner.
 
-        Args:
-        - request (Request): The Django request object.
+    Args:
+    - request (Request): The Django request object including in Authorization header('Authorization',Token 'token')
 
-        Returns:
-        - Response: The response containing the state of the partner.
+    Returns:
+    - Response: The response containing the state of the partner.
     """
 
     def get(self, request, *args, **kwargs):
@@ -467,7 +456,8 @@ class PartnerState(APIView):
         Update the state of a partner.
 
         Args:
-        - request (Request): The Django request object.
+        - request (Request): The Django request object including in Authorization header('Authorization',Token 'token')
+        and in the request body('state': bool). Shops only
 
         Returns:
         - JsonResponse: The response indicating the status of the operation and any errors.
@@ -494,7 +484,7 @@ class PartnerOrders(APIView):
         Retrieve the list of orders for a partner.
 
         Args:
-        - request (Request): The Django request object.
+        - request (Request): The Django request object including in Authorization header('Authorization',Token 'token')
 
         Returns:
         - Response: The response containing the list of orders.
@@ -531,10 +521,6 @@ class ContactView(APIView):
     def get(self, request, *args, **kwargs):
         """
         Retrieve information of authenticatded user
-        :param request:
-        :param args:
-        :param kwargs:
-        :return:
         """
         if not request.user.is_authenticated:
             return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
@@ -546,11 +532,9 @@ class ContactView(APIView):
     def post(self, request, *args, **kwargs):
         """
         Create a new contact for the authenticated user.
-        :param request:
-        :param args:
-        :param kwargs:
-        :return:
-         """
+        The request body must contain the following fields:
+        city, street, house, apartment, phone and header must contain 'Authorization' and 'Token'
+        """
         if not request.user.is_authenticated:
             return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
 
@@ -562,21 +546,17 @@ class ContactView(APIView):
             )
         request.data._mutable = True
         request.data.update({"user": request.user.id})
-        serilizer = ContactSerializer(data=request.data)
-        if serilizer.is_valid():
-            serilizer.save()
-            return Response(serilizer.data)
+        serializer = ContactSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
         else:
-            return Response({'status': False, 'Errors': serilizer.errors})
+            return Response({'status': False, 'Errors': serializer.errors})
 
     def delete(self, request, *args, **kwargs):
         """
         Delete the contact of the authenticated user.
-        :param request:
-        :param args:
-        :param kwargs:
-        :return:
-         """
+        """
         if not request.user.is_authenticated:
             return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
         items_string = request.data.get('items')
@@ -596,10 +576,6 @@ class ContactView(APIView):
     def put(self, request, *args, **kwargs):
         """
         Update the contact information of the authenticated user.
-        :param request:
-        :param args:
-        :param kwargs:
-        :return:
         """
         if not request.user.is_authenticated:
             return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
@@ -619,7 +595,7 @@ class ContactView(APIView):
 
 class OrdersView(APIView):
     """
-    Класс для получения и размешения заказов пользователями
+    The class for managing orders.
     Methods:
     - get: Retrieve the details of a specific order.
     - post: Create a new order.
@@ -632,11 +608,8 @@ class OrdersView(APIView):
 
     def get(self, request, *args, **kwargs):
         """
-        Retrieve the details of a specific order.
-        :param request:
-        :param args:
-        :param kwargs:
-        :return:
+        Retrieve the details of a specific order.The request header must contain the 'Authorization' and 'Token' and
+        body must contain 'id'
         """
         if not request.user.is_authenticated:
             return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
@@ -653,10 +626,7 @@ class OrdersView(APIView):
     def post(self, request, *args, **kwargs):
         """
         Create a new order.
-        :param request:
-        :param args:
-        :param kwargs:
-        :return:
+        The request header must contain the 'Authorization' and 'Token' and body must contain 'items' and 'contact'
         """
         if not request.user.is_authenticated:
             return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)

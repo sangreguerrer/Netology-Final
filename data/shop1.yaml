@@ -26,7 +26,7 @@ goods:
   - id: 4216313
     category: 224
     model: apple/iphone/
-    brand: Nicarho
+    brand: Niccas
     name: Смартфон Apple iPhone XR 256GB (красный)
     price: 65000
     price_rrc: 69990
@@ -39,7 +39,7 @@ goods:
   - id: 4216226
     category: 224
     model: apple/iphone/xr
-    brand: Nicarho
+    brand: Niccas
     name: Смартфон Apple iPhone XR 256GB (черный)
     price: 65000
     price_rrc: 69990
@@ -52,7 +52,7 @@ goods:
   - id: 4672670
     category: 224
     model: apple/iphone/xr
-    brand: Nicarho
+    brand: Niccas
     name: Смартфон Apple iPhone XR 128GB (синий)
     price: 60000
     price_rrc: 64990
@@ -65,7 +65,7 @@ goods:
   - id: 1234567
     category: 15
     model: samsung/galaxy-s20
-    brand: Nicarho
+    brand: Niccas
     name: Smartphone Samsung Galaxy S20 128GB (black)
     price: 80000
     price_rrc: 84990
@@ -78,7 +78,7 @@ goods:
   - id: 1234568
     category: 15
     model: samsung/galaxy-note20
-    brand: Nicarho
+    brand: Niccas
     name: Smartphone Samsung Galaxy Note20 256GB (mystic bronze)
     price: 95000
     price_rrc: 99990
@@ -113,7 +113,7 @@ goods:
   - id: 123544571
     category: 224
     model: xiaomi/mi-10t-pro
-    brand: Nicarho
+    brand: Niccas
     name: Smartphone Xiaomi Mi 10T Pro 256GB (cosmic black)
     price: 70000
     price_rrc: 74990
@@ -126,7 +126,7 @@ goods:
   - id: 1234572
     category: 5
     model: samsung/qled-q90r
-    brand: Nicarho
+    brand: Niccas
     name: Samsung QLED Q90R 65" 4K UHD Smart TV
     price: 2500
     price_rrc: 2999
@@ -138,7 +138,7 @@ goods:
   - id: 123476573
     category: 5
     model: lg/oled-cx
-    brand: Nicarho
+    brand: Niccas
     name: LG OLED CX 55" 4K UHD Smart TV
     price: 1800
     price_rrc: 1999
@@ -162,7 +162,7 @@ goods:
   - id: 123234575
     category: 5
     model: tcl/6-series
-    brand: Nicarho
+    brand: Niccas
     name: TCL 6-Series 55" 4K UHD Smart TV
     price: 700
     price_rrc: 799
@@ -174,7 +174,7 @@ goods:
   - id: 123424576
     category: 5
     model: vizio/p-series-quantum
-    brand: Nicarho
+    brand: Niccas
     name: Vizio P-Series Quantum 65" 4K UHD Smart TV
     price: 1200
     price_rrc: 1299

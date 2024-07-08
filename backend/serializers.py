@@ -43,18 +43,18 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ('id',)
 
     def create(self, validated_data):
-        # Извлечение и удаление паролей из данных
+        # Extraction of password from validated_data
         password = validated_data.pop('password')
         validated_data.pop('password2')
-        # Извлечение данных изображения, если они есть
+        # Extraction of image data if it passed
         image_data = validated_data.pop('image', None)
-        # Создание пользователя
+        # Creating user
         user = User.objects.create(**validated_data)
         user.set_password(password)
         user.save()
         if image_data:
-            image_instance = Image.objects.create(image=image_data)  # Создание объекта Image
-            user.image = image_instance  # Связываем с пользователем
+            image_instance = Image.objects.create(image=image_data)  # Creating Image object
+            user.image = image_instance  # Add image to user
             user.save()
         return user
 
@@ -82,17 +82,20 @@ class UserDetailsSerializer(UserSerializer):
         read_only_fields = ('id',)
 
     def update(self, instance, validated_data):
+        # Extraction of image data if it passed
         image_data = validated_data.pop('image', None)
         if image_data:
             image = Image.objects.create(image=image_data, title=f"{instance.username}'s image")
             instance.image = image
         password = validated_data.pop('password', None)
+        # Update user
         if password:
             instance.set_password(password)
             instance.save()
         return super().update(instance, validated_data)
 
     def validate(self, attrs):
+        # Check if both password and password2 are provided in request data.
         if 'password' and 'password2' in attrs:
             super().validate(attrs)
         elif 'password' in attrs and 'password2' not in attrs:
@@ -117,14 +120,14 @@ class BrandRelatedSerializer(serializers.ModelSerializer):
         fields = ('name',)
 
     def create(self, validated_data):
-        # Извлечение данных изображения, если они есть
+        # Extraction of image data if it passed
         image_data = validated_data.pop('image')
-        # Создание пользователя
+        # Creating brand
         brand = Brand.objects.create(**validated_data)
         brand.save()
         if image_data:
-            image_instance = Image.objects.create(image=image_data)  # Создание объекта Image
-            brand.image = image_instance  # Связываем с пользователем
+            image_instance = Image.objects.create(image=image_data)  # Create Image object
+            brand.image = image_instance  # Add image to brand
             brand.save()
         return brand
 
@@ -195,10 +198,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
         def create(self, validated_data):
             try:
-            # Получаем экземпляр Order из validated_data
-                order = validated_data.pop('order')
-            # Создаем экземпляр OrderItem с данными из validated_data
-                order_item = OrderItem.objects.create(**validated_data, order=order)
+                order = validated_data.pop('order') # Extraction of Order from validated_data
+                order_item = OrderItem.objects.create(**validated_data, order=order)# Create new OrderItem object with the validated_data
             except Exception as e:
                 print(f"Error creating OrderItem: {e}")
                 return None

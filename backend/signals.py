@@ -15,7 +15,7 @@ new_user_registered = Signal()
 @receiver(reset_password_token_created)
 def password_reset_token_created(sender, instance, reset_password_token, **kwargs):
     """
-        Отправляем письмо с токеном для сброса пароля
+        Sending an e-mail to the user when a password reset token is created
         When a token is created, an e-mail needs to be sent to the user
         :param sender: View Class that sent the signal
         :param instance: View Instance that sent the signal
@@ -34,14 +34,17 @@ def password_reset_token_created(sender, instance, reset_password_token, **kwarg
 
 @receiver(post_save, sender=get_user_model())
 def new_user_registered_signal(sender, instance, created, **kwargs):
+    """
+    If a new user is registered, send an e-mail to confirm the email address.
+        """
     if created and not instance.is_active:
-        register_confirm_email.delay(instance.pk)
+        register_confirm_email.delay(instance.pk)#this task will be executed in celery
 
 
 @receiver(new_order)
 def new_order_signal(sender, **kwargs):
     """
-    отправяем письмо при изменении статуса заказа
+    Sending an e-mail to the user when a new order is created
         """
     # send an e-mail to the user
     user = User.objects.get(id=sender)
