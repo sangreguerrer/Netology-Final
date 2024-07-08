@@ -128,7 +128,10 @@ class Brand(models.Model):
         ordering = ('-name',)
 
     def __str__(self):
-        return self.name
+        if isinstance(self.name, str):
+            return self.name
+        else:
+            return 'Бренд не создан'
 
 
 class Shop(models.Model):
@@ -243,6 +246,9 @@ class ProductInfo(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['product', 'shop', 'brand', 'external_id'], name='unique_product_info'),
         ]
+
+    def __str__(self):
+        return str(self.product.name)
 
 
 class Parameter(models.Model):
