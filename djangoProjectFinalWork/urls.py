@@ -26,22 +26,22 @@ from backend.views import (RegisterView, confirm_acc, AccountDetails, login, par
 
 app_name = 'backend'
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('admin', admin.site.urls),
     path('partner/state', PartnerState.as_view(), name='partner-state'),
     path('partner/update', partner_update, name='partner-update'),
     path('partner/orders', PartnerOrders.as_view(), name='partner-orders'),
-    path('register/', RegisterView.as_view(), name='user-register'),
-    path('register/confirm/', confirm_acc, name='user-register-confirm'),
-    path('user/reset_password/', reset_password_request_token, name='reset_password'),
+    path('register', RegisterView.as_view(), name='user-register'),
+    path('register/confirm', confirm_acc, name='user-register-confirm'),
+    path('user/reset_password', reset_password_request_token, name='reset_password'),
     path('user/reset_password/confirm', reset_password_confirm, name='password-reset-confirm'),
     path('contact', ContactView.as_view(), name='contact'),
-    path('profile/', AccountDetails.as_view(), name='profile-settings'),
-    path('brand/', BrandView.as_view(), name='brands'),
+    path('profile', AccountDetails.as_view(), name='profile-settings'),
+    path('brand', BrandView.as_view(), name='brands'),
     path('shops', ShopView.as_view(), name='shops'),
-    path('products/', product_view, name='shops'),
+    path('products', product_view, name='shops'),
     path('basket', BasketView.as_view(), name='basket'),
     path('order', OrdersView.as_view(), name='order'),
-    path('user/login/', login, name='user-login'),
+    path('user/login', login, name='user-login'),
 ]
 
 if settings.DEBUG:

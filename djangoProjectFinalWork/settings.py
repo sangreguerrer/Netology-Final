@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'django_rest_passwordreset',
     'backend',
+    'djangoProjectFinalWork'
 ]
 
 MIDDLEWARE = [

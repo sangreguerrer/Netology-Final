@@ -1,11 +1,9 @@
 from django.contrib.auth import get_user_model
 from django.dispatch import receiver, Signal
 from django.db.models.signals import post_save
-from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
 from django_rest_passwordreset.signals import reset_password_token_created
 
-from djangoProjectFinalWork.tasks import register_confirm_email
+from djangoProjectFinalWork.tasks import register_confirm_email, send_order_email, password_reset_email_task
 from .models import ConfirmEmailToken, User
 
 new_order = Signal()
@@ -23,13 +21,9 @@ def password_reset_token_created(sender, instance, reset_password_token, **kwarg
         :param kwargs:
         :return:
     """
-    subject, message, from_email, to = (
-        f"Reset password token for: {reset_password_token.user}",
-        reset_password_token.key,
-        settings.EMAIL_HOST_USER,
-        reset_password_token.user.email)
-    msg = EmailMultiAlternatives(subject, message, from_email, [to])
-    msg.send()
+    token = ConfirmEmailToken(user=reset_password_token.user, key=reset_password_token.key)
+    if token:
+        password_reset_email_task.delay(token.user_id, token.key, token.user.email)
 
 
 @receiver(post_save, sender=get_user_model())
@@ -38,25 +32,17 @@ def new_user_registered_signal(sender, instance, created, **kwargs):
     If a new user is registered, send an e-mail to confirm the email address.
         """
     if created and not instance.is_active:
-        register_confirm_email.delay(instance.pk)#this task will be executed in celery
+        # this task will be executed in celery
+        register_confirm_email.delay(instance.pk)
 
 
 @receiver(new_order)
-def new_order_signal(sender, **kwargs):
+def new_order_signal(user_id, **kwargs):
     """
     Sending an e-mail to the user when a new order is created
         """
     # send an e-mail to the user
-    user = User.objects.get(id=sender)
-
-    msg = EmailMultiAlternatives(
-        # title:
-        f"Обновление статуса заказа",
-        # message:
-        'Заказ сформирован',
-        # from:
-        settings.EMAIL_HOST_USER,
-        # to:
-        [user.email]
-    )
-    msg.send()
+    user = User.objects.get(id=user_id)
+    if user:
+        # this task will be executed in celery
+        send_order_email.delay(user.pk)

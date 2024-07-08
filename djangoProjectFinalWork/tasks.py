@@ -45,6 +45,47 @@ def register_confirm_email(user_id):
 
 
 @shared_task
+def password_reset_email_task(user, token, email):
+    """
+       Sending an e-mail to the user when a password reset token is created
+       When a token is created, an e-mail needs to be sent to the user
+       :param sender: View Class that sent the signal
+       :param instance: View Instance that sent the signal
+       :param kwargs:
+       :return:
+    """
+    subject, message, from_email, to = (
+        f"Reset password token for: {user}",
+        token, settings.EMAIL_HOST_USER, email)
+    msg = EmailMultiAlternatives(subject, message, from_email, [to])
+    msg.send()
+
+
+@shared_task
+def send_order_email(user_id):
+    """
+    Sending an e-mail to the user when a new order is created
+    """
+    user_model = get_user_model()
+    try:
+        user = user_model.objects.get(pk=user_id)
+        # send an e-mail to the user
+        msg = EmailMultiAlternatives(
+            # title:
+            f"Обновление статуса заказа",
+            # message:
+            'Заказ сформирован',
+            # from:
+            settings.EMAIL_HOST_USER,
+            # to:
+            [user.email]
+        )
+        msg.send()
+    except user_model.DoesNotExist:
+        logging.warning("Tried to send verification email to non-existing user '%s'" % user_id)
+
+
+@shared_task
 def do_import(user_id, url):
     """
     Импортируем данные из yaml файла
@@ -71,8 +112,9 @@ def do_import(user_id, url):
             ProductInfo.objects.filter(shop_id=shop.id).delete()
             for product in yaml_file['goods']:
                 product_obj, _ = Product.objects.get_or_create(name=product['name'], category=category_obj)
-                brand, _ = Brand.objects.get_or_create(name=product.get('brand'))
-                brand_name = Brand.objects.filter(name=product.get('brand')).first()
+                if product['brand']:
+                    brand, _ = Brand.objects.get_or_create(name=product.get('brand'))
+                    brand_name = Brand.objects.filter(name=product.get('brand')).first()
                 product_info = ProductInfo.objects.create(
                     product_id=product_obj.id,
                     external_id=product['id'],

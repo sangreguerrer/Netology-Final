@@ -118,7 +118,8 @@ class AccountDetails(APIView):
           Retrieve the details of the authenticated user.
 
           Args:
-          - request (Request): The Django request object including in Authorization header('Authorization',Token 'token').
+          - request (Request): The Django request object including in Authorization header(
+          'Authorization',Token 'token').
 
           Returns:
           - Response: The response containing the details of the authenticated user.
@@ -401,7 +402,8 @@ def partner_update(request, *args, **kwargs):
     A view for updating and addition shops.
     Methods:
 
-    - post: upload validated goods data.The authorization token is required. The data must be passed in yaml format via raw link  the request body.
+    - post: upload validated goods data.The authorization token is required. The data must be passed in yaml format via
+    raw link  the request body.
     for example: url: https://raw.githubusercontent.com/netology-code/python-final-diplom/master/data/shop1.yaml
     """
     if not request.user.is_authenticated:
@@ -531,7 +533,7 @@ class ContactView(APIView):
 
     def post(self, request, *args, **kwargs):
         """
-        Create a new contact for the authenticated user.
+        Crquantityeate a new contact for the authenticated user.
         The request body must contain the following fields:
         city, street, house, apartment, phone and header must contain 'Authorization' and 'Token'
         """

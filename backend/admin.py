@@ -11,11 +11,13 @@ from backend.models import User, Shop, Category, Product, ProductInfo, Parameter
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
     model = User
+    list_display = ['username', 'email', 'type', 'is_staff', 'is_superuser', 'is_active', 'image']
     list_filter = ('is_staff', 'is_superuser', 'is_active', 'type',)
 
 
 class BrandAdmin(admin.ModelAdmin):
     model = Brand
+    list_display = ('name', 'country', 'email', 'url', 'image')
     fields = ("name", "country", "email", "url", "image")
 
 
@@ -25,7 +27,7 @@ class ProdParInline(admin.TabularInline):
 
 class ProductInfoInline(admin.TabularInline):
     model = ProductInfo
-    fields = ['product', 'model', 'brand', 'shop', 'external_id', 'quantity', 'price', 'price_rrc', 'image']
+    list_display = ('product', 'model', 'quantity', 'price', 'price_rrc')
     inlines = [ProdParInline]
 
 
@@ -59,7 +61,6 @@ class ShopAdmin(admin.ModelAdmin):
 class OrderAdmin(admin.ModelAdmin):
     model = Order
     fields = ["user", "contact", "state"]
-    readonly_fields = ("created",)
 
 
 @admin.register(OrderItem)
@@ -74,6 +75,7 @@ class OrderItemAdmin(admin.ModelAdmin):
             raise ValidationError(e)
 
 
+admin.site.register(Image)
 admin.site.register(ProductParameter)
 admin.site.register(ProductInfo)
 admin.site.register(Contact)
