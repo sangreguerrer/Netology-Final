@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'django_rest_passwordreset',
+    'drf_spectacular',
+    'drf_spectacular_sidecar',
     'backend',
     'djangoProjectFinalWork'
 ]
@@ -131,11 +133,16 @@ REST_FRAMEWORK = {
         'rest_framework_yaml.parsers.YAMLParser',
     ],
     'DEFAULT_RENDERER_CLASSES': [
-        'rest_framework_yaml.renderers.YAMLRenderer',
+        # 'rest_framework_yaml.renderers.YAMLRenderer',
+        'rest_framework.renderers.JSONRenderer',
         ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication'
-    ]
+        'rest_framework.authentication.TokenAuthentication',
+        ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 # Internationalization
@@ -171,3 +178,19 @@ INTERNAL_IPS = [
 
 CELERY_BROKER_URL = os.environ.get("BROKER_URL", "redis://redis:6379/0")
 CELERY_RESULT_BACKEND = os.environ.get("RESULT_BACKEND", "redis://redis:6379/0")
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Django Project Final Job',
+    'DESCRIPTION': 'Hi-Tech Shop API',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'SWAGGER_UI_DIST': 'SIDECAR',
+    'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
+    'REDOC_DIST': 'SIDECAR',
+    'AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'SECURITY': [
+        {'Bearer': []},
+    ],
+}
