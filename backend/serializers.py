@@ -70,6 +70,11 @@ class UserSerializer(serializers.ModelSerializer):
         return attrs
 
 
+class ConfirmAccountSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    token = serializers.CharField()
+
+
 class UserDetailsSerializer(UserSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password], required=False)
     password2 = serializers.CharField(write_only=True, required=False)
@@ -203,6 +208,16 @@ class OrderItemSerializer(serializers.ModelSerializer):
                 print(f"Error creating OrderItem: {e}")
                 return None
             return order_item
+
+
+class SuccessResponseSerializer(serializers.Serializer):
+    status = serializers.BooleanField()
+    message = serializers.CharField()
+
+
+class ErrorResponseSerializer(serializers.Serializer):
+    status = serializers.BooleanField()
+    error = serializers.CharField()
 
 
 class OrderItemCreateSerializer(OrderItemSerializer):

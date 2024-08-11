@@ -133,9 +133,10 @@ REST_FRAMEWORK = {
         'rest_framework_yaml.parsers.YAMLParser',
     ],
     'DEFAULT_RENDERER_CLASSES': [
-        # 'rest_framework_yaml.renderers.YAMLRenderer',
+        'rest_framework_yaml.renderers.YAMLRenderer',
         'rest_framework.renderers.JSONRenderer',
         ],
+
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
         ],

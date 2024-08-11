@@ -19,6 +19,7 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 from django_rest_passwordreset.views import reset_password_request_token, reset_password_confirm
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 from backend.views import (RegisterView, confirm_acc, AccountDetails, login, partner_update,
                            ShopView, BrandView, product_view, PartnerState, BasketView, OrdersView, ContactView,
@@ -42,6 +43,10 @@ urlpatterns = [
     path('basket', BasketView.as_view(), name='basket'),
     path('order', OrdersView.as_view(), name='order'),
     path('user/login', login, name='user-login'),
+    path('schema', SpectacularAPIView.as_view(), name='schema'),
+    path('schema/swagger-ui', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('schema/redoc', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+
 ]
 
 if settings.DEBUG:
