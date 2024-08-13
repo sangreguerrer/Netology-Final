@@ -46,7 +46,9 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'drf_spectacular_sidecar',
     'backend',
-    'djangoProjectFinalWork'
+    'djangoProjectFinalWork',
+    'django_extensions',
+    'social_django',
 ]
 
 MIDDLEWARE = [
@@ -134,18 +136,39 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework_yaml.renderers.YAMLRenderer',
-        'rest_framework.renderers.JSONRenderer',
         ],
 
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
         ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '1000/day',
+        'user': '1000/minute'
+    }
 }
 
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'werkzeug': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
 
@@ -179,6 +202,7 @@ INTERNAL_IPS = [
 
 CELERY_BROKER_URL = os.environ.get("BROKER_URL", "redis://redis:6379/0")
 CELERY_RESULT_BACKEND = os.environ.get("RESULT_BACKEND", "redis://redis:6379/0")
+RUNSERVERPLUS_SERVER_ADDRESS_PORT = '0.0.0.0:8000'
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Django Project Final Job',
@@ -191,7 +215,24 @@ SPECTACULAR_SETTINGS = {
     'AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
     ],
-    'SECURITY': [
-        {'Bearer': []},
-    ],
 }
+
+AUTHENTICATION_BACKENDS = (
+    'social_core.backends.open_id.OpenIdAuth',
+    'social_core.backends.google.GoogleOpenId',
+    'social_core.backends.google.GoogleOAuth2',
+    'social_core.backends.google.GoogleOAuth',
+    'social_core.backends.twitter.TwitterOAuth',
+    'social_core.backends.yahoo.YahooOpenId',
+    'social_core.backends.github.GithubOAuth2',
+    'social_core.backends.vk.VKOAuth2',
+    'social_core.backends.facebook.FacebookOAuth2',
+    'django.contrib.auth.backends.ModelBackend',
+)
+
+SOCIAL_AUTH_JSONFIELD_ENABLED = True
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.getenv('SOCIAL_AUTH_GOOGLE_OAUTH2_K')
+SOCIAL_AUTH_VK_OAUTH2_KEY = os.getenv('SOCIAL_AUTH_VK_OAUTH2_K')
+SOCIAL_AUTH_VK_OAUTH2_SECRET = os.getenv('SOCIAL_AUTH_VK_OAUTH2_S')
+SOCIAL_AUTH_VK_OAUTH2_SCOPE = ['email']
+SOCIAL_AUTH_VK_APP_USER_MODE = 2
