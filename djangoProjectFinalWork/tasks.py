@@ -126,6 +126,7 @@ def do_import(user_id, url):
                     brand=brand_name,
                 )
                 product_info.save()
+                print(product_info)
                 for name, value in product['parameters'].items():
                     parameter_obj, _ = Parameter.objects.get_or_create(name=name)
                     ProductParameter.objects.create(
