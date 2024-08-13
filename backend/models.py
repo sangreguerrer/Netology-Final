@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
@@ -226,13 +227,13 @@ class ProductInfo(models.Model):
         max_digits=18,
         decimal_places=2,
         verbose_name='Цена',
-        validators=[MinValueValidator(0)]
+        validators=[MinValueValidator(Decimal('0.00'))]
     )
     price_rrc = models.DecimalField(
         verbose_name='Рекомендуемая розничная цена',
         max_digits=18,
         decimal_places=2,
-        validators=[MinValueValidator(0)]
+        validators=[MinValueValidator(Decimal('0.00'))]
     )
     image = models.OneToOneField(
         Image,

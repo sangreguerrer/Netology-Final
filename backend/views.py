@@ -1,6 +1,9 @@
 from distutils.util import strtobool
+from tempfile import template
+
 from drf_spectacular.utils import extend_schema
-from rest_framework.permissions import AllowAny
+from rest_framework.throttling import AnonRateThrottle
+
 from djangoProjectFinalWork.tasks import do_import
 from django.contrib.auth import authenticate
 from django.db import IntegrityError
@@ -11,7 +14,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.request import Request
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.authtoken.models import Token
 from rest_framework.views import APIView
 from django.contrib.auth.password_validation import validate_password
@@ -21,13 +24,13 @@ from ujson import loads as load_json
 from .models import ConfirmEmailToken, Category, Shop, ProductInfo, Order, OrderItem, Contact, Brand
 from .serializers import UserSerializer, CategorySerializer, ShopSerializer, ProductInfoSerializer, OrderSerializer, \
     OrderItemSerializer, ContactSerializer, BrandSerializer, UserDetailsSerializer, ConfirmAccountSerializer, \
-    UserAuthSerializer, ErrorResponseSerializer
+    UserAuthSerializer, ErrorResponseSerializer, SuccessResponseSerializer, ProductSerializer
 from .signals import new_order
 
 
 class RegisterView(APIView):
     parser_classes = (MultiPartParser, FormParser)
-    permission_classes = [AllowAny]
+    throttle_classes = [AnonRateThrottle]
 
     @extend_schema(
         request=UserSerializer,
@@ -83,7 +86,7 @@ def confirm_acc(request: Request, *args, **kwargs):
     Args:
         - request (Request): The Django request object, includes in body('email', 'token').
     Returns:
-        - JsonResponse: The response indicating the status of the operation and any errors.
+        - Response: The response indicating the status of the operation and any errors.
     """
     required_args = {'email', 'token'}
 
@@ -183,7 +186,7 @@ class AccountDetails(APIView):
         - request (Request): The Django request object including in Authorization header('Authorization',Token 'token')
 
         Returns:
-        - JsonResponse: The response indicating the status of the operation and any errors.
+        - Response: The response indicating the status of the operation and any errors.
         """
         if not request.user.is_authenticated:
             return Response({'Status': False, 'Error': 'Log in required'}, status=403)
@@ -221,21 +224,36 @@ class BrandView(APIView):
           - get: Retrieve the list of brands.
           - post: Add a new brand(shops only).
     """
-
+    @extend_schema(
+        responses={
+            200: BrandSerializer(many=True),
+            404: {'description': 'Brand not found.'},
+        },
+        description="Retrieve the list of brands."
+    )
     def get(self, request, *args, **kwargs):
         queryset = Brand.objects.all()
         serializer = BrandSerializer(queryset, many=True)
         return Response(serializer.data)
 
+    @extend_schema(
+        request=BrandSerializer,
+        responses={
+            201: BrandSerializer,
+            400: {'description': 'Bad request, including missing fields and validation errors.'},
+            403: {'description': 'Log in required.'},
+        },
+        description="Add a new brand(shops only)."
+    )
     def post(self, request, *args, **kwargs):
         """
         Add a new brand(shops only).
         Request must contain 'name' in body and header('Authorization',Token 'token')
         """
         if not request.user.is_authenticated:
-            return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
+            return Response({'Status': False, 'Error': 'Log in required'}, status=403)
         if request.user.type != 'shop':
-            return JsonResponse(
+            return Response(
                 {'Status': False, 'Error': 'You are not a partner'}
             )
 
@@ -244,6 +262,34 @@ class BrandView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @extend_schema(
+        request=BrandSerializer,
+        responses={
+            200: BrandSerializer,
+            400: {'description': 'Bad request, including missing fields and validation errors.'},
+            403: ErrorResponseSerializer,
+        },
+        description="Update brand infos."
+    )
+    def put(self, request, *args, **kwargs):
+        """Update brand infos. Request must contain 'id' and fields, that You want to update in body and
+        header('Authorization',Token 'token')"""
+        if not request.user.is_authenticated:
+            return Response({'Status': False, 'Error': 'Log in required'}, status=403)
+        if request.user.type != 'shop':
+            return Response(
+                {'Status': False, 'Error': 'You are not a partner'}
+            )
+        brand_id = request.data.get('id')
+        brand = Brand.objects.filter(id=brand_id).first()
+        if brand:
+            serializer = BrandSerializer(brand, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'Status': False, 'Error': 'Brand was not found'})
 
 
 class CategoryView(ListAPIView):
@@ -266,6 +312,15 @@ class ShopView(ListAPIView):
     serializer_class = ShopSerializer
 
 
+@extend_schema(
+        request=ProductInfoSerializer,
+        responses={
+            200: SuccessResponseSerializer(many=True),
+            400: {'description': 'Bad request, including missing fields and validation errors.'},
+            404: {'description': 'Product not found.'},
+        },
+        description="Retrieve the product information based on the specified filters."
+)
 @api_view(['GET'])
 def product_view(request, *args, **kwargs):
     """
@@ -475,11 +530,13 @@ class BasketView(APIView):
         return Response({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
 
 
-@extend_schema(responses={
-    '200': 'Successfully loaded',
-    '403': {'description': 'Log in required'},
-    '404': {'description': 'Not found'}
-}
+@extend_schema(
+    request=None,
+    responses={
+        200: SuccessResponseSerializer,
+        403: {'description': 'Log in required'},
+        404: {'description': 'Not found'}
+    }
 )
 @api_view(['POST'])
 def partner_update(request, *args, **kwargs):
@@ -492,6 +549,7 @@ def partner_update(request, *args, **kwargs):
     raw link  the request body.
     for example: url: https://raw.githubusercontent.com/netology-code/python-final-diplom/master/data/shop1.yaml
     """
+    serializer_class = ProductInfoSerializer
     if not request.user.is_authenticated:
         return Response({'Status': False, 'Error': 'Log in required'}, status=403)
 
@@ -718,7 +776,7 @@ class ContactView(APIView):
         Update the contact information of the authenticated user.
         """
         if not request.user.is_authenticated:
-            return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
+            return Response({'Status': False, 'Error': 'Log in required'}, status=403)
 
         if 'id' in request.data:
             if request.data['id'].isdigit():
