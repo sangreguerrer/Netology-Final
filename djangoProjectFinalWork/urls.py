@@ -15,7 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls')
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django_rest_passwordreset.views import reset_password_request_token, reset_password_confirm
@@ -46,6 +46,7 @@ urlpatterns = [
     path('schema', SpectacularAPIView.as_view(), name='schema'),
     path('schema/swagger-ui', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('schema/redoc', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    path('social-auth', include('social_django.urls', namespace='social')),
 
 ]
 
