@@ -3,8 +3,29 @@
    {{ form.as_p }}
   <button type="submit">Upload</button>
 </form>
-
+    <a href="/login/vk-oauth2"><img src="/static/lvk.png" class="avatar-3" data-toggle="tooltip" title="{% trans 'Login via VKontakte' %}"></a>
 {% if img_obj %}
   <h3>Succesfully uploaded : {{img_obj.title}}</h3>
   <img src="{{ img_obj.image.url}}" alt="connect" style="max-height:300px">
 {% endif %}
+<script src="http://vk.com/js/api/xd_connection.js?2" type="text/javascript"></script>
+<script type="text/javascript">
+    VK.init(function() {
+            VK.addCallback("onApplicationAdded", requestRights);
+            VK.addCallback("onSettingsChanged", onSettingsChanged);
+        }
+    );
+
+    function startConnect() {
+        VK.callMethod('showInstallBox');
+    }
+
+    function requestRights() {
+        VK.callMethod('showSettingsBox', 1 + 2); // 1+2 is just an example
+    }
+
+    function onSettingsChanged(settings) {
+        window.location.reload();
+    }
+</script>
+<a href="#" onclick="startConnect(); return false;">Click to authenticate</a>
