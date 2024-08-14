@@ -292,6 +292,13 @@ class BrandView(APIView):
         return Response({'Status': False, 'Error': 'Brand was not found'})
 
 
+@extend_schema(
+    request=CategorySerializer,
+    responses={
+            200: CategorySerializer(many=True),
+        },
+    description="Retrieve the list of categories."
+)
 class CategoryView(ListAPIView):
     """
       The class for actions with categories
@@ -302,6 +309,14 @@ class CategoryView(ListAPIView):
     serializer_class = CategorySerializer
 
 
+@extend_schema(
+    request=ShopSerializer,
+    responses={
+            200: SuccessResponseSerializer(many=True),
+            404: {'description': 'Shop not found.'},
+    },
+    description="Retrieve the list of shops."
+)
 class ShopView(ListAPIView):
     """
       The class for view and additions of shops
@@ -531,7 +546,7 @@ class BasketView(APIView):
 
 
 @extend_schema(
-    request=None,
+    request=UserSerializer,
     responses={
         200: SuccessResponseSerializer,
         403: {'description': 'Log in required'},
@@ -541,7 +556,6 @@ class BasketView(APIView):
 @api_view(['POST'])
 def partner_update(request, *args, **kwargs):
     """
-
     A view for updating and addition shops.
     Methods:
 
