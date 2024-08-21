@@ -19,6 +19,8 @@ services:
       dockerfile: Dockerfile
     volumes:
       - .:/djangoProjectFinalWork
+      - ./cert.crt:/djangoProjectFinalWork/cert.crt
+      - ./cert.key:/djangoProjectFinalWork/cert.key
     ports:
       - 8000:8000
     environment:
@@ -34,7 +36,7 @@ services:
     links:
       - db:db
     container_name: django_app
-    command: sh -c "python manage.py makemigrations  && python manage.py migrate &&  python manage.py runserver_plus"
+    command: sh -c "python manage.py makemigrations && python manage.py migrate && python manage.py runserver_plus --cert-file cert.crt"
   db:
     image: postgres:latest
     container_name: ${DB_HOST}
