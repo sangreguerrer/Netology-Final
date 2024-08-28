@@ -14,20 +14,22 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls')
 """
-from django.contrib import admin
+from baton.autodiscover import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django_rest_passwordreset.views import reset_password_request_token, reset_password_confirm
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
+from backend.admin_features import admin_search
 from backend.views import (RegisterView, confirm_acc, AccountDetails, login, partner_update,
                            ShopView, BrandView, product_view, PartnerState, BasketView, OrdersView, ContactView,
-                           PartnerOrders)
-
+                           PartnerOrders, image_upload_view, login_page,)
 app_name = 'backend'
 urlpatterns = [
     path('admin', admin.site.urls),
+    path('api/search/', admin_search),
+    path('baton/', include('baton.urls')),
     path('partner/state', PartnerState.as_view(), name='partner-state'),
     path('partner/update', partner_update, name='partner-update'),
     path('partner/orders', PartnerOrders.as_view(), name='partner-orders'),
@@ -43,10 +45,12 @@ urlpatterns = [
     path('basket', BasketView.as_view(), name='basket'),
     path('order', OrdersView.as_view(), name='order'),
     path('user/login', login, name='user-login'),
+    path('user/login/choice', login_page),
     path('schema', SpectacularAPIView.as_view(), name='schema'),
     path('schema/swagger-ui', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('schema/redoc', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
-    path('social-auth', include('social_django.urls', namespace='social')),
+    path('upload/', image_upload_view),
+    path('auth/', include('social_django.urls', namespace='social')),
 ]
 
 if settings.DEBUG:

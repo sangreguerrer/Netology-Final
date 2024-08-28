@@ -33,6 +33,7 @@ AUTH_USER_MODEL = "backend.User"
 # Application definition
 
 INSTALLED_APPS = [
+    'baton',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -46,9 +47,11 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'drf_spectacular_sidecar',
     'backend',
+    'corsheaders',
     'djangoProjectFinalWork',
     'django_extensions',
     'social_django',
+    'baton.autodiscover',
 ]
 
 MIDDLEWARE = [
@@ -56,6 +59,9 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    'social_django.middleware.SocialAuthExceptionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -85,7 +91,11 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'djangoProjectFinalWork.wsgi.application'
 
-
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = [
+    'https://mysite.com',
+    'https://another-allowed-site.com',
+]
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
@@ -144,8 +154,6 @@ REST_FRAMEWORK = {
 
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
-        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
-        'rest_framework_social_oauth2.authentication.SocialAuthentication',
         ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_THROTTLE_CLASSES': [
@@ -191,7 +199,7 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
-
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATIC_URL = 'static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -207,7 +215,7 @@ INTERNAL_IPS = [
 
 CELERY_BROKER_URL = os.environ.get("BROKER_URL", "redis://redis:6379/0")
 CELERY_RESULT_BACKEND = os.environ.get("RESULT_BACKEND", "redis://redis:6379/0")
-RUNSERVERPLUS_SERVER_ADDRESS_PORT = 'mysite.com:8000'
+RUNSERVERPLUS_SERVER_ADDRESS_PORT = 'mysite.com:443'
 
 
 SPECTACULAR_SETTINGS = {
@@ -238,6 +246,7 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.user.create_user',
     'social_core.pipeline.social_auth.associate_user',
     'social_core.pipeline.social_auth.load_extra_data',
+    'backend.authentication.save_vk_access_token',
     'social_core.pipeline.user.user_details',
 )
 
@@ -246,5 +255,87 @@ SOCIAL_AUTH_JSONFIELD_ENABLED = True
 SOCIAL_AUTH_VK_OAUTH2_KEY = os.getenv('SOCIAL_AUTH_VK_OAUTH2_K')
 SOCIAL_AUTH_VK_OAUTH2_SECRET = os.getenv('SOCIAL_AUTH_VK_OAUTH2_S')
 SOCIAL_AUTH_VK_OAUTH2_SCOPE = ['email']
+SOCIAL_AUTH_VK_OAUTH2_EXTRA_DATA = ['access_token', 'expires', 'id', 'email']
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 7 days
+SESSION_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SECURE = True
+LOGIN_REDIRECT_URL = '/'
 SOCIAL_AUTH_VK_APP_USER_MODE = 2
-SOCIAL_AUTH_LOGIN_REDIRECT_URL = 'products'
+SOCIAL_AUTH_RAISE_EXCEPTIONS = True
+RAISE_EXCEPTIONS = True
+DEBUG = True
+
+
+BATON = {
+    'SITE_HEADER': 'Baron',
+    'SITE_TITLE': 'Custom site',
+    'INDEX_TITLE': 'Site configuration',
+    'SUPPORT_HREF': 'https://github.com/otto-torino/django-baton/issues',
+    'COPYRIGHT': 'copyright © 2024 <a href="https://www.otto.to.it">Otto srl</a>', # noqa
+    'POWERED_BY': '<a href="https://www.otto.to.it">Otto srl</a>',
+    'CONFIRM_UNSAVED_CHANGES': True,
+    'SHOW_MULTIPART_UPLOADING': True,
+    'ENABLE_IMAGES_PREVIEW': True,
+    'CHANGELIST_FILTERS_IN_MODAL': True,
+    'CHANGELIST_FILTERS_ALWAYS_OPEN': False,
+    'CHANGELIST_FILTERS_FORM': True,
+    'CHANGEFORM_FIXED_SUBMIT_ROW': True,
+    'COLLAPSABLE_USER_AREA': True,
+    'MENU_ALWAYS_COLLAPSED': False,
+    'MENU_TITLE': 'Menu',
+    'MESSAGES_TOASTS': True,
+    'GRAVATAR_DEFAULT_IMG': 'identicon',
+    'GRAVATAR_ENABLED': True,
+    'FORCE_THEME': None,
+    'LOGIN_SPLASH': '/static/core/img/login-splash.png',
+    'SEARCH_FIELD': {
+        'label': 'Search Products and Brands',
+        'url': '/api/search/',
+    },
+    'MENU': (
+        {'type': 'title', 'label': 'ApplicationZZ', 'apps': ('auth', )},
+        {
+            'type': 'app',
+            'name': 'auth',
+            'label': 'Auth app',
+            'icon': 'fa fa-lock',
+            'default_open': True,
+            'models': (
+                {
+                    'name': 'group',
+                    'label': 'Groups'
+                },
+            )
+        },
+        {
+            'type': 'app',
+            'name': 'backend',
+            'label': 'Backend app',
+            'default_open': True,
+            'icon': 'fa fa-database',
+            'models': (
+                {
+                    'name': 'user',
+                    'label': 'Users'
+                },
+                {
+                    'name': 'product',
+                    'label': 'Products'
+                },
+                {
+                    'name': 'category',
+                    'label': 'Categories'
+                },
+                {
+                    'name': 'order',
+                    'label': 'Orders'
+                },
+            )
+        },
+        {'type': 'free', 'label': 'My parent voice', 'children': [
+            {'type': 'free', 'label': 'main-page', 'url': 'https://mysite.com'},
+            {'type': 'free', 'label': 'admin', 'url': 'https://mysite.com/admin'},
+        ]},
+        {'type': 'title', 'label': 'Contents', 'apps': ('flatpages', )},
+    )
+}

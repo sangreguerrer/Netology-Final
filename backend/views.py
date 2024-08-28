@@ -1,13 +1,10 @@
 from distutils.util import strtobool
-from tempfile import template
-
+from django.shortcuts import render
 from drf_spectacular.utils import extend_schema
 from rest_framework.throttling import AnonRateThrottle
-
 from djangoProjectFinalWork.tasks import do_import
 from django.contrib.auth import authenticate
 from django.db import IntegrityError
-from django.http import JsonResponse
 from rest_framework import status
 from django.core.exceptions import ValidationError
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -21,12 +18,16 @@ from django.contrib.auth.password_validation import validate_password
 from django.db.models import Q, Sum, F
 from ujson import loads as load_json
 
-from .models import ConfirmEmailToken, Category, Shop, ProductInfo, Order, OrderItem, Contact, Brand
+from .forms import ImageForm
+from .models import ConfirmEmailToken, Category, Shop, ProductInfo, Order, OrderItem, Contact, Brand, Product
 from .serializers import UserSerializer, CategorySerializer, ShopSerializer, ProductInfoSerializer, OrderSerializer, \
     OrderItemSerializer, ContactSerializer, BrandSerializer, UserDetailsSerializer, ConfirmAccountSerializer, \
     UserAuthSerializer, ErrorResponseSerializer, SuccessResponseSerializer, ProductSerializer
 from .signals import new_order
 
+
+def login_page(request):
+    return render(request, 'login.html')
 
 class RegisterView(APIView):
     parser_classes = (MultiPartParser, FormParser)
@@ -121,8 +122,22 @@ def confirm_acc(request: Request, *args, **kwargs):
 )
 @api_view(['POST'])
 def login(request, *args, **kwargs):
+    # vk_code = request.data.get('code')  # Получение code от ВКонтакте
+    # """
+    # Логика аутентификации через ВКонтакте
+    # """
+    # if vk_code:
+    #     user = authenticate(request, vk_code=vk_code)
+    #     if user is not None:
+    #         token, _ = Token.objects.get_or_create(user=user)
+    #         return Response(
+    #             {'Status': True, 'Token': token.key},
+    #             status=status.HTTP_200_OK
+    #         )
+    #     return Response({'Status': False, 'Error': 'ВКонтакте авторизация не пройдена'},
+    #                     status=status.HTTP_400_BAD_REQUEST)
     """
-    The user must pass email and password to get auth token. Body must contain 'email' and 'password'
+    Логика авторизации через email и пароль
     """
     required_args = {'email', 'password'}
     if not required_args.issubset(request.data.keys()):
@@ -875,3 +890,17 @@ class OrdersView(APIView):
                     else:
                         return Response({'Status': False, 'Error': 'Заказ не найден'})
         return Response({'Status': False, 'Error': 'Не указаны все необходимые аргументы'})
+
+
+def image_upload_view(request):
+    """Process images uploaded by users"""
+    if request.method == 'POST':
+        form = ImageForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            # Get the current instance object to display in the template
+            img_obj = form.instance
+            return render(request, 'image.html', {'form': form, 'img_obj': img_obj})
+    else:
+        form = ImageForm()
+    return render(request, 'images/image.html', {'form': form})
