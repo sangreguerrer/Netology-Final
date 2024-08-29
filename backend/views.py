@@ -11,7 +11,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.request import Request
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view
 from rest_framework.authtoken.models import Token
 from rest_framework.views import APIView
 from django.contrib.auth.password_validation import validate_password
@@ -122,20 +122,6 @@ def confirm_acc(request: Request, *args, **kwargs):
 )
 @api_view(['POST'])
 def login(request, *args, **kwargs):
-    # vk_code = request.data.get('code')  # Получение code от ВКонтакте
-    # """
-    # Логика аутентификации через ВКонтакте
-    # """
-    # if vk_code:
-    #     user = authenticate(request, vk_code=vk_code)
-    #     if user is not None:
-    #         token, _ = Token.objects.get_or_create(user=user)
-    #         return Response(
-    #             {'Status': True, 'Token': token.key},
-    #             status=status.HTTP_200_OK
-    #         )
-    #     return Response({'Status': False, 'Error': 'ВКонтакте авторизация не пройдена'},
-    #                     status=status.HTTP_400_BAD_REQUEST)
     """
     Логика авторизации через email и пароль
     """

@@ -20,7 +20,7 @@ def admin_search(request):
         for product in products:
             res.append({
                 'label': f'{product.name} edit',
-                'url': f'/admin/backend/product/{product.id}/change',
+                'url': f'/adminbackend/product/{product.id}/change',
                 'icon': 'fa fa-edit',
             })
 
@@ -28,7 +28,7 @@ def admin_search(request):
         for brand in brands:
             res.append({
                 'label': f'{brand.name} edit',
-                'url': f'/admin/backend/brand/{brand.id}/change',
+                'url': f'/adminbackend/brand/{brand.id}/change',
                 'icon': 'fa fa-edit',
             })
     else:

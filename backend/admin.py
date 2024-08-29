@@ -24,10 +24,6 @@ class CustomUserAdmin(UserAdmin):
         (None, {'fields': ('image',)}),
     )
 
-    # def __init__(self, model, admin_site):
-    #     super().__init__(model, admin_site)
-    #     self.image = None
-
     @admin.display(description='Profile Image')
     def image_tag(self, obj):
         if obj.image:
@@ -51,11 +47,29 @@ class ProductInfoInline(admin.TabularInline):
     list_display = ('product', 'model', 'quantity', 'price', 'price_rrc')
     inlines = [ProdParInline]
 
+    fieldsets = (
+        ('Основная информация', {
+            'fields': ('product', 'model'),
+            'classes': ('baton-tabs-init', 'baton-tab-fs-info', 'order-0',)
+        }),
+        ('Цены и количество', {
+            'fields': ('quantity', 'price', 'price_rrc'),
+            'classes': ('tab-fs-pricing', 'order-1',)
+        }),
+    )
+
 
 @admin.register(Parameter)
 class ParameterAdmin(admin.ModelAdmin):
     model = Parameter
     inlines = [ProdParInline]
+
+    fieldsets = (
+        ('Параметры', {
+            'fields': ('name',),
+            'classes': ('baton-tabs-init', 'baton-tab-fs-params', 'order-0',)
+        }),
+    )
 
 
 @admin.register(Product)
@@ -63,6 +77,13 @@ class ProductAdmin(admin.ModelAdmin):
     model = Product
     list_display = ('name', 'category')
     inlines = [ProductInfoInline]
+
+    fieldsets = (
+        ('Основная информация', {
+            'fields': ('name', 'category'),
+            'classes': ('baton-tabs-init', 'baton-tab-fs-main', 'order-0',)
+        }),
+    )
 
 
 @admin.register(Category)
