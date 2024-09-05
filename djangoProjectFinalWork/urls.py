@@ -24,9 +24,14 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, Spec
 from backend.admin_features import admin_search
 from backend.views import (RegisterView, confirm_acc, AccountDetails, login, partner_update,
                            ShopView, BrandView, product_view, PartnerState, BasketView, OrdersView, ContactView,
-                           PartnerOrders, image_upload_view, login_page,)
+                           PartnerOrders, image_upload_view, login_page, ErrorTriggerView, )
 app_name = 'backend'
+# handler404 = 'backend.views.my_custom_page_not_found_view'
+# handler403 = 'backend.views.my_custom_permission_denied_view'
+# handler500 = 'backend.views.my_custom_server_error_view'
+
 urlpatterns = [
+    path('sentry-debug/', ErrorTriggerView.as_view()),
     path('admin', admin.site.urls),
     path('api/search/', admin_search),
     path('baton/', include('baton.urls')),
@@ -51,6 +56,7 @@ urlpatterns = [
     path('schema/redoc', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
     path('upload/', image_upload_view),
     path('auth/', include('social_django.urls', namespace='social')),
+
 ]
 
 if settings.DEBUG:

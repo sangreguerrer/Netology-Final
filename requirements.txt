@@ -68,6 +68,7 @@ pytz==2024.1
 PyYAML==6.0.1
 redis==5.0.7
 referencing==0.35.1
+easy-thumbnails==2.9
 requests==2.32.3
 requests-oauthlib==2.0.0
 rich==13.7.1
@@ -94,5 +95,5 @@ Werkzeug==3.0.3
 wheel==0.44.0
 django-cors-headers==4.4.0
 django-baton==4.1.0
-
-
+sentry-sdk==2.13.0
+django-cacheops==7.0.2

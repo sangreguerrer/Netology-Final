@@ -3,11 +3,13 @@ from django.dispatch import receiver, Signal
 from django.db.models.signals import post_save
 from django_rest_passwordreset.signals import reset_password_token_created
 
-from djangoProjectFinalWork.tasks import register_confirm_email, send_order_email, password_reset_email_task
-from .models import ConfirmEmailToken, User
+from djangoProjectFinalWork.tasks import register_confirm_email, send_order_email, password_reset_email_task, \
+    generate_thumbnails
+from .models import ConfirmEmailToken, User, Image
 
 new_order = Signal()
 new_user_registered = Signal()
+new_image = Signal()
 
 
 @receiver(reset_password_token_created)
@@ -46,3 +48,12 @@ def new_order_signal(user_id, **kwargs):
     if user:
         # this task will be executed in celery
         send_order_email.delay(user.pk)
+
+
+@receiver(post_save, sender=Image)
+def new_image_signal(sender, instance, created, **kwargs):
+    """
+    Generating thumbnails for all the images
+    """
+    if created:
+        generate_thumbnails.delay(instance.image.path)

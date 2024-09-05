@@ -1,10 +1,12 @@
 from distutils.util import strtobool
+
+import sentry_sdk
 from django.shortcuts import render
 from drf_spectacular.utils import extend_schema
 from rest_framework.throttling import AnonRateThrottle
-from djangoProjectFinalWork.tasks import do_import
+from djangoProjectFinalWork.tasks import do_import, generate_thumbnails, notify_low_stock
 from django.contrib.auth import authenticate
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from rest_framework import status
 from django.core.exceptions import ValidationError
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -19,15 +21,16 @@ from django.db.models import Q, Sum, F
 from ujson import loads as load_json
 
 from .forms import ImageForm
-from .models import ConfirmEmailToken, Category, Shop, ProductInfo, Order, OrderItem, Contact, Brand, Product
+from .models import ConfirmEmailToken, Category, Shop, ProductInfo, Order, OrderItem, Contact, Brand
 from .serializers import UserSerializer, CategorySerializer, ShopSerializer, ProductInfoSerializer, OrderSerializer, \
     OrderItemSerializer, ContactSerializer, BrandSerializer, UserDetailsSerializer, ConfirmAccountSerializer, \
-    UserAuthSerializer, ErrorResponseSerializer, SuccessResponseSerializer, ProductSerializer
+    UserAuthSerializer, ErrorResponseSerializer, SuccessResponseSerializer
 from .signals import new_order
 
 
 def login_page(request):
     return render(request, 'login.html')
+
 
 class RegisterView(APIView):
     parser_classes = (MultiPartParser, FormParser)
@@ -193,8 +196,6 @@ class AccountDetails(APIView):
             return Response({'Status': False, 'Error': 'Log in required'}, status=403)
 
         if 'password' in request.data:
-            errors = {}
-
             try:
                 validate_password(request.data['password'])
             except ValidationError as err:
@@ -202,7 +203,7 @@ class AccountDetails(APIView):
                 for error in err.messages:
                     err_array.append(error)
                 return Response(
-                    {'Status': False, 'Error': 'invalid password'},
+                    {'Status': False, 'Error': err_array},
                     status=status.HTTP_403_FORBIDDEN)
         user_serializer = UserDetailsSerializer(request.user, data=request.data, partial=True)
         if user_serializer.is_valid():
@@ -430,43 +431,62 @@ class BasketView(APIView):
     )
     def post(self, request, *args, **kwargs):
         """
-       Add an items to the user's basket.
+        Add items to the user's basket.
 
-       Args:
-       - request (Request): The Django request object including in Authorization header('Authorization',Token 'token'),
-        and in the request body('items': [{product_info: int, quantity: int}]).
+        Args:
+        - request (Request): The Django request object including in Authorization header('Authorization',Token 'token'),
+          and in the request body('items': [{product_info: int, quantity: int}]).
 
-       Returns:
-       - Response: The response indicating the status of the operation and any errors.
-       """
+        Returns:
+        - Response: The response indicating the status of the operation and any errors.
+        """
         if not request.user.is_authenticated:
             return Response({'Status': False, 'Error': 'Log in required'}, status=403)
+
         items_string = request.data.get('items')
+
         if items_string:
             try:
                 items = load_json(items_string)
             except ValueError:
-                return Response(
-                    {'Status': False, 'Error': 'Invalid JSON format'},
-                )
-            else:
+                return Response({'Status': False, 'Error': 'Invalid JSON format'}, status=400)
+
+            # Начинаем транзакцию
+            with transaction.atomic():
                 basket, _ = Order.objects.get_or_create(user_id=request.user.id, state='basket')
                 objects_created = 0
-                for order_items in items:
-                    order_items.update({'order': basket.id})
-                    serializer = OrderItemSerializer(data=order_items)
-                    if serializer.is_valid():
-                        try:
-                            serializer.save()
-                        except IntegrityError as error:
-                            return Response({'Status': False, 'Errors': str(error)})
-                        else:
-                            objects_created += 1
-                    else:
-                        return Response({'Status': False, 'Errors': serializer.errors})
-                return Response({'Status': True, 'Создано объектов': objects_created})
+                errors = []  # Список для хранения ошибок
 
-        return Response({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
+                for order_item in items:
+                    try:
+                        product_info = ProductInfo.objects.get(id=order_item['product_info'])
+
+                        # Проверка на достаточное количество товара
+                        if order_item['quantity'] > product_info.quantity:
+                            errors.append(f"Недостаточное количество для товара с ID {order_item['product_info']}")
+                            continue
+
+                        # Обновление данных для записи в корзину
+                        order_item.update({'order': basket.id})
+                        serializer = OrderItemSerializer(data=order_item)
+
+                        if serializer.is_valid():
+                            serializer.save()
+                            objects_created += 1
+                        else:
+                            errors.append(serializer.errors)
+
+                    except ProductInfo.DoesNotExist:
+                        errors.append(f"Товар с ID {order_item['product_info']} не найден")
+                    except Exception as e:
+                        errors.append(str(e))
+
+                if errors:
+                    return Response({'Status': False, 'Errors': errors}, status=400)
+
+                return Response({'Status': True, 'Создано объектов': objects_created}, status=201)
+
+        return Response({'Status': False, 'Error': 'Не указаны все необходимые аргументы'}, status=400)
 
     @extend_schema(
         request=OrderItemSerializer(many=True),
@@ -526,24 +546,46 @@ class BasketView(APIView):
         """
         if not request.user.is_authenticated:
             return Response({'Status': False, 'Error': 'Log in required'}, status=403)
+
         items_string = request.data.get('items')
         if items_string:
             try:
                 item_dict = load_json(items_string)
             except ValueError:
-                return Response(
-                    {'Status': False, 'Error': 'Invalid JSON format'},
-                )
-            else:
-                basket, _ = Order.objects.get_or_create(user_id=request.user.id, state='basket')
-                objects_updated = 0
-                for item in item_dict:
-                    if isinstance(item['id'], int) and isinstance(item['quantity'], int):
+                return Response({'Status': False, 'Error': 'Invalid JSON format'}, status=400)
+
+            basket, _ = Order.objects.get_or_create(user_id=request.user.id, state='basket')
+            objects_updated = 0
+            errors = []  # Список для сбора ошибок
+
+            for item in item_dict:
+                if isinstance(item['id'], int) and isinstance(item['quantity'], int):
+                    try:
+                        product_info = ProductInfo.objects.get(id=item['id'])
+                        # Проверка на достаточное количество товара
+                        if item['quantity'] > product_info.quantity:
+                            errors.append(f"Недостаточное количество для товара с ID {item['id']}")
+                            continue
+
                         objects_updated += OrderItem.objects.filter(
-                            order_id=basket.id, id=item['id']
+                            order_id=basket.id, product_info_id=item['id']
                         ).update(quantity=item['quantity'])
-                return Response({'Status': True, 'Обновлено объектов': objects_updated})
-        return Response({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
+
+                    except ProductInfo.DoesNotExist:
+                        errors.append(f"Товар с ID {item['id']} не найден")
+
+                else:
+                    errors.append(f"Неверный формат данных для товара с ID {item.get('id', 'не указан')}")
+
+            if objects_updated > 0:
+                response_data = {'Status': True, 'Обновлено объектов': objects_updated}
+                if errors:
+                    response_data['Errors'] = errors
+                return Response(response_data, status=200)
+
+            return Response({'Status': False, 'Errors': errors}, status=400 if errors else 200)
+
+        return Response({'Status': False, 'Error': 'Не указаны все необходимые аргументы'}, status=400)
 
 
 @extend_schema(
@@ -564,7 +606,6 @@ def partner_update(request, *args, **kwargs):
     raw link  the request body.
     for example: url: https://raw.githubusercontent.com/netology-code/python-final-diplom/master/data/shop1.yaml
     """
-    serializer_class = ProductInfoSerializer
     if not request.user.is_authenticated:
         return Response({'Status': False, 'Error': 'Log in required'}, status=403)
 
@@ -862,20 +903,50 @@ class OrdersView(APIView):
             return Response({'Status': False, 'Error': 'Log in required'}, status=403)
 
         if {'id', 'contact'}.issubset(request.data):
-            if request.data['id'].isdigit():
+            order_id = request.data['id']
+            contact_id = request.data['contact']
+
+            if order_id.isdigit():
+                order_id = int(order_id)
+
                 try:
-                    is_updated = Order.objects.filter(
-                        user_id=request.user.id,
-                        id=request.data['id']).update(contact_id=request.data['contact'], state='new')
-                except IntegrityError as err:
-                    return Response({'Status': False, 'Error': str(err)})
-                else:
-                    if is_updated:
+                    with transaction.atomic():
+                        # Обновляем состояние заказа
+                        is_updated = Order.objects.filter(
+                            user_id=request.user.id,
+                            id=order_id
+                        ).update(contact_id=contact_id, state='new')
+
+                        if not is_updated:
+                            return Response({'Status': False, 'Error': 'Order not found'}, status=404)
+
+                        # Получаем товары из заказа
+                        order_items = OrderItem.objects.filter(order_id=order_id)
+                        product_info_ids = order_items.values_list('product_info_id', flat=True)
+
+                        # Подсчитываем общее количество товаров
+                        product_quantities = order_items.values('product_info_id').annotate(
+                            total_quantity=Sum('quantity'))
+
+                        # Обновляем количество товаров
+                        for pq in product_quantities:
+                            product_info = ProductInfo.objects.get(id=pq['product_info_id'])
+                            product_info.quantity -= pq['total_quantity']
+                            if product_info.quantity < 0:
+                                raise ValueError(f"Insufficient stock for product {product_info.id}")
+                            product_info.save()
+                            notify_low_stock.delay(product_info.id)
+
+                        # Отправляем сигнал о создании заказа
                         new_order.send(sender=request.user.id, user_id=request.user.id)
-                        return Response({'Status': True})
-                    else:
-                        return Response({'Status': False, 'Error': 'Заказ не найден'})
-        return Response({'Status': False, 'Error': 'Не указаны все необходимые аргументы'})
+                        return Response({'Status': True}, status=200)
+
+                except IntegrityError as err:
+                    return Response({'Status': False, 'Error': str(err)}, status=400)
+                except ValueError as err:
+                    return Response({'Status': False, 'Error': str(err)}, status=400)
+
+        return Response({'Status': False, 'Error': 'Missing required arguments'}, status=400)
 
 
 def image_upload_view(request):
@@ -885,8 +956,28 @@ def image_upload_view(request):
         if form.is_valid():
             form.save()
             # Get the current instance object to display in the template
+            generate_thumbnails.delay(form.instance.image.path)
             img_obj = form.instance
-            return render(request, 'image.html', {'form': form, 'img_obj': img_obj})
+            return render(request, 'images/image.html', {'form': form, 'img_obj': img_obj})
     else:
         form = ImageForm()
     return render(request, 'images/image.html', {'form': form})
+
+
+class ErrorTriggerView(APIView):
+    """
+    APIView для тестирования Sentry.
+    Этот view вызывает исключение, которое будет отправлено в Sentry.
+    """
+
+    def get(self, request):
+        try:
+            # Намеренное исключение
+            division_by_zero = 1 / 0
+        except ZeroDivisionError as exc:
+            # Вы можете захватить ошибку и передать ее в Sentry, если необходимо
+            sentry_sdk.capture_exception(exc)
+            # Либо Sentry автоматически зафиксирует это исключение
+            raise
+        return Response({"message": "This should never be seen!"}, status=status.HTTP_200_OK)
+

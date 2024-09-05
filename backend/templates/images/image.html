@@ -1,3 +1,5 @@
+
+{% load thumbnail %}
 <form method="post" enctype="multipart/form-data">
   {% csrf_token %}
    {{ form.as_p }}
@@ -5,5 +7,5 @@
 </form>
 {% if img_obj %}
   <h3>Successfully uploaded : {{img_obj.title}}</h3>
-  <img src="{{ img_obj.image.url}}" alt="connect" style="max-height:300px">
+  <img src="{{ img_obj.|thumbnail_url:'my_preview_1'}}" alt="connect" style="max-height:300px">
 {% endif %}

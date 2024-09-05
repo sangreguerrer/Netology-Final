@@ -11,6 +11,9 @@ from django.http import HttpResponse
 from requests import get
 from rest_framework.exceptions import ValidationError
 from yaml import safe_load
+from easy_thumbnails.files import generate_all_aliases
+from easy_thumbnails.exceptions import InvalidImageFormatError
+
 
 from backend.models import ConfirmEmailToken, Shop, Category, ProductInfo, Brand, Product, Parameter, \
     ProductParameter
@@ -139,3 +142,53 @@ def do_import(user_id, url):
         return 'Status: False, Error: User does not exist'
     finally:
         return 'Status: True'
+
+
+@shared_task
+def generate_thumbnails(image_path):
+    try:
+        generate_all_aliases(image_path, include_global=True)
+    except InvalidImageFormatError:
+        # Обработка ошибки, если формат изображения некорректен
+        pass
+
+
+@shared_task
+def notify_low_stock(product_info_id):
+    try:
+        # Получаем объект ProductInfo с связанными полями product, shop и user
+        product_info = ProductInfo.objects.select_related('shop').get(id=product_info_id)
+
+        # Получаем количество товара и владельца магазина
+        shop = product_info.shop
+        user_model = get_user_model()
+        owner = user_model.objects.get(pk=shop.user_id)
+
+        # Если количество товара меньше 2, отправляем уведомление
+        if product_info.quantity < 2:
+            try:
+                subject = f"Внимание! {product_info.model} заканчивается!"
+                text_content = f"Товар {product_info.model} в Вашем магазине {shop.name} заканчивается. Осталось {product_info.quantity} единиц."
+                html_content = f"""
+                <p>Уважаемый {owner.first_name},</p>
+                <p>Товар <strong>{product_info.model}</strong> в вашем магазине <strong>{shop.name}</strong> заканчивается.</p>
+                <p>Осталось <strong>{product_info.quantity}</strong> единиц.</p>
+                <p>Пожалуйста, пополните запасы как можно скорее!</p>
+                """
+
+                msg = EmailMultiAlternatives(
+                    subject=subject,
+                    body=text_content,
+                    from_email=settings.EMAIL_HOST_USER,
+                    to=[owner.email],
+                )
+
+                # Добавляем HTML-версию письма
+                msg.attach_alternative(html_content, "text/html")
+                msg.send()
+
+            except Exception as e:
+                print(f"Ошибка отправки письма: {e}")
+
+    except ProductInfo.DoesNotExist:
+        print("ProductInfo не найден")

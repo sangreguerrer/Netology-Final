@@ -11,7 +11,10 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 import os
 from pathlib import Path
+import django.db.models.signals
 from dotenv import load_dotenv
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
 from django.core.mail import send_mail
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -51,6 +54,7 @@ INSTALLED_APPS = [
     'djangoProjectFinalWork',
     'django_extensions',
     'social_django',
+    'easy_thumbnails',
     'baton.autodiscover',
 ]
 
@@ -339,3 +343,33 @@ BATON = {
         {'type': 'title', 'label': 'Contents', 'apps': ('flatpages', )},
     )
 }
+THUMBNAIL_ALIASES = {
+    '': {
+        'my_preview_1': {'size': (250, 180), 'crop': 'smart'},
+        'my_preview_2': {'size': (500, 0), 'crop': 'smart'},
+        'my_preview_3': {'size': (100, 0), 'crop': 'smart'},
+    },
+}
+
+sentry_sdk.init(
+    dsn="https://f0142d8db198b2d5c7d9043b3d6a4fb2@o4507888370057216.ingest.de.sentry.io/4507888372744272",
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for tracing.
+    traces_sample_rate=1.0,
+    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,
+    integrations=[
+        DjangoIntegration(
+            transaction_style='url',
+            middleware_spans=True,
+            signals_spans=True,
+            signals_denylist=[
+                django.db.models.signals.pre_init,
+                django.db.models.signals.post_init,
+            ],
+            cache_spans=True,
+        ),
+    ],
+)
