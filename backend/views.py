@@ -21,7 +21,7 @@ from django.db.models import Q, Sum, F
 from ujson import loads as load_json
 
 from .forms import ImageForm
-from .models import ConfirmEmailToken, Category, Shop, ProductInfo, Order, OrderItem, Contact, Brand
+from .models import ConfirmEmailToken, Category, Shop, ProductInfo, Order, OrderItem, Contact, Brand, User
 from .serializers import UserSerializer, CategorySerializer, ShopSerializer, ProductInfoSerializer, OrderSerializer, \
     OrderItemSerializer, ContactSerializer, BrandSerializer, UserDetailsSerializer, ConfirmAccountSerializer, \
     UserAuthSerializer, ErrorResponseSerializer, SuccessResponseSerializer
@@ -30,6 +30,7 @@ from .signals import new_order
 
 def login_page(request):
     return render(request, 'login.html')
+
 
 
 class RegisterView(APIView):
