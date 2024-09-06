@@ -56,6 +56,8 @@ INSTALLED_APPS = [
     'social_django',
     'easy_thumbnails',
     'baton.autodiscover',
+    'debug_toolbar',
+    'cacheops',
 ]
 
 MIDDLEWARE = [
@@ -67,6 +69,7 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -215,6 +218,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 INTERNAL_IPS = [
     "127.0.0.1",
+    "mysite.com",
 ]
 
 CELERY_BROKER_URL = os.environ.get("BROKER_URL", "redis://redis:6379/0")
@@ -373,3 +377,26 @@ sentry_sdk.init(
         ),
     ],
 )
+
+
+def debug_toolbar_show(request):
+    return True
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://redis:6379/1',  # Используй Redis на том же уровне, что и Cacheops
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}
+DEBUG_TOOLBAR_CONFIG = {
+    'SHOW_TOOLBAR_CALLBACK': 'djangoProjectFinalWork.settings.debug_toolbar_show'
+}
+
+CACHEOPS_REDIS = "redis://redis:6379/1"
+
+CACHEOPS = {
+    'backend.*': {'ops': 'all', 'timeout': 60 * 60},
+}

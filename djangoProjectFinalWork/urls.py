@@ -15,6 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls')
 """
 from baton.autodiscover import admin
+from debug_toolbar.toolbar import debug_toolbar_urls
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
@@ -57,7 +58,7 @@ urlpatterns = [
     path('upload/', image_upload_view),
     path('auth/', include('social_django.urls', namespace='social')),
 
-]
+] + debug_toolbar_urls()
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL,

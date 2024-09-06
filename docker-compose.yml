@@ -11,8 +11,6 @@ services:
       - 6379
     networks:
       dev_network:
-        aliases:
-          - db-redis
   django:
     build:
       context: .

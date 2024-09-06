@@ -97,3 +97,6 @@ django-cors-headers==4.4.0
 django-baton==4.1.0
 sentry-sdk==2.13.0
 django-cacheops==7.0.2
+django-debug-toolbar==4.4.6
+django-redis==5.4.0
+
