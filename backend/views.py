@@ -4,6 +4,8 @@ import sentry_sdk
 from django.shortcuts import render
 from drf_spectacular.utils import extend_schema
 from rest_framework.throttling import AnonRateThrottle
+from yaml.representer import RepresenterError
+
 from djangoProjectFinalWork.tasks import do_import, generate_thumbnails, notify_low_stock
 from django.contrib.auth import authenticate
 from django.db import IntegrityError, transaction
@@ -433,6 +435,7 @@ class BasketView(APIView):
                    },
         description="Add items to the user's basket."
     )
+
     def post(self, request, *args, **kwargs):
         """
         Add items to the user's basket if they are in stock.
@@ -445,7 +448,7 @@ class BasketView(APIView):
         - Response: The response indicating the status of the operation and any errors.
         """
         if not request.user.is_authenticated:
-            return Response({'Status': False, 'Error': 'Log in required'}, status=403)
+            return Response({'Status': False, 'Error': 'Log in required'}, status=status.HTTP_403_FORBIDDEN)
 
         items_string = request.data.get('items')
 
@@ -455,38 +458,63 @@ class BasketView(APIView):
             except ValueError:
                 return Response({'Status': False, 'Error': 'Invalid JSON format'}, status=400)
 
-            with transaction.atomic():
-                basket, _ = Order.objects.get_or_create(user_id=request.user.id, state='basket')
-                objects_created = 0
-                errors = []
+        errors = []
+        objects_created = 0
 
-                for order_item in items:
-                    try:
-                        product_info = ProductInfo.objects.get(id=order_item['product_info'])
+        with transaction.atomic():
+            basket, _ = Order.objects.get_or_create(user_id=request.user.id, state='basket')
 
-                        if order_item['quantity'] > product_info.quantity:
-                            errors.append(f"Недостаточное количество для товара с ID {order_item['product_info']}")
-                            continue
-                        order_item.update({'order': basket.id})
-                        serializer = OrderItemSerializer(data=order_item)
+            for order_item in items:
+                if not isinstance(order_item, dict):
+                    errors.append("Each item should be a dictionary.")
+                    continue
 
-                        if serializer.is_valid():
+                product_info_id = order_item.get('product_info')
+                quantity = order_item.get('quantity')
+
+                if not isinstance(product_info_id, int) or not isinstance(quantity, int):
+                    errors.append("Each item must have 'product_info' and 'quantity' as integers.")
+                    continue
+
+                try:
+                    product_info = ProductInfo.objects.get(id=product_info_id)
+
+                    if quantity > product_info.quantity:
+                        errors.append(f"Недостаточное количество для товара с ID {product_info_id}")
+                        continue
+                    if OrderItem.objects.filter(order=basket, product_info=product_info).exists():
+                        errors.append(f"Item with product ID {product_info_id} already exists in the basket")
+                        continue
+
+                    order_item_data = {
+                        'order': basket.id,
+                        'product_info': product_info_id,
+                        'quantity': quantity
+                    }
+
+                    serializer = OrderItemSerializer(data=order_item_data)
+
+                    if serializer.is_valid():
+                        try:
                             serializer.save()
                             objects_created += 1
-                        else:
-                            errors.append(serializer.errors)
+                        except RepresenterError as e:
+                            errors.append(f"RepresenterError: {str(e)}")
+                    else:
+                        errors.append(serializer.errors)
 
-                    except ProductInfo.DoesNotExist:
-                        errors.append(f"Товар с ID {order_item['product_info']} не найден")
-                    except Exception as e:
-                        errors.append(str(e))
+                except ProductInfo.DoesNotExist:
+                    errors.append(f"Товар с ID {product_info_id} не найден")
+                except ValidationError as e:
+                    errors.append(f"ValidationError: {str(e)}")
+                except Exception as e:
+                    errors.append(str(e))
 
-                if errors:
-                    return Response({'Status': False, 'Errors': errors}, status=400)
+        if errors:
+            return Response({'Status': False, 'Errors': errors, 'Objects Created': objects_created},
+                            status=status.HTTP_400_BAD_REQUEST)
 
-                return Response({'Status': True, 'Создано объектов': objects_created}, status=201)
-
-        return Response({'Status': False, 'Error': 'Не указаны все необходимые аргументы'}, status=400)
+        return Response({'Status': True, 'Objects Created': objects_created}, status=status.HTTP_201_CREATED)
 
     @extend_schema(
         request=OrderItemSerializer(many=True),
@@ -900,7 +928,7 @@ class OrdersView(APIView):
     def post(self, request, *args, **kwargs):
         """
         Create a new order.
-        The request header must contain the 'Authorization' and 'Token' and body must contain 'items' and 'contact'
+        The request header must contain the 'Authorization' and 'Token' and body must contain 'id' and 'contact'
         """
         if not request.user.is_authenticated:
             return Response({'Status': False, 'Error': 'Log in required'}, status=403)
@@ -908,41 +936,42 @@ class OrdersView(APIView):
         if {'id', 'contact'}.issubset(request.data):
             order_id = request.data['id']
             contact_id = request.data['contact']
+            order = Order.objects.filter(id=order_id, user_id=request.user.id).first()
+            if order:
+                if order_id.isdigit():
+                    order_id = int(order_id)
 
-            if order_id.isdigit():
-                order_id = int(order_id)
+                    try:
+                        with transaction.atomic():
+                            is_updated = Order.objects.filter(
+                                user_id=request.user.id,
+                                id=order_id
+                            ).update(contact_id=contact_id, state='new')
 
-                try:
-                    with transaction.atomic():
-                        is_updated = Order.objects.filter(
-                            user_id=request.user.id,
-                            id=order_id
-                        ).update(contact_id=contact_id, state='new')
+                            if not is_updated:
+                                return Response({'Status': False, 'Error': 'Order not found'}, status=404)
 
-                        if not is_updated:
-                            return Response({'Status': False, 'Error': 'Order not found'}, status=404)
+                            order_items = OrderItem.objects.filter(order_id=order_id)
 
-                        order_items = OrderItem.objects.filter(order_id=order_id)
+                            product_quantities = order_items.values('product_info_id').annotate(
+                                total_quantity=Sum('quantity'))
 
-                        product_quantities = order_items.values('product_info_id').annotate(
-                            total_quantity=Sum('quantity'))
+                            for pq in product_quantities:
+                                product_info = ProductInfo.objects.get(id=pq['product_info_id'])
+                                product_info.quantity -= pq['total_quantity']
+                                if product_info.quantity < 0:
+                                    raise ValueError(f"Insufficient stock for product {product_info.id}")
+                                product_info.save()
+                                notify_low_stock.delay(product_info.id)
 
-                        for pq in product_quantities:
-                            product_info = ProductInfo.objects.get(id=pq['product_info_id'])
-                            product_info.quantity -= pq['total_quantity']
-                            if product_info.quantity < 0:
-                                raise ValueError(f"Insufficient stock for product {product_info.id}")
-                            product_info.save()
-                            notify_low_stock.delay(product_info.id)
+                            new_order.send(sender=request.user.id, user_id=request.user.id)
+                            return Response({'Status': True}, status=200)
 
-                        new_order.send(sender=request.user.id, user_id=request.user.id)
-                        return Response({'Status': True}, status=200)
-
-                except IntegrityError as err:
-                    return Response({'Status': False, 'Error': str(err)}, status=400)
-                except ValueError as err:
-                    return Response({'Status': False, 'Error': str(err)}, status=400)
-
+                    except IntegrityError as err:
+                        return Response({'Status': False, 'Error': str(err)}, status=400)
+                    except ValueError as err:
+                        return Response({'Status': False, 'Error': str(err)}, status=400)
+            return Response({'Status': False, 'Error': 'Order not found'}, status=404)
         return Response({'Status': False, 'Error': 'Missing required arguments'}, status=400)
 
 

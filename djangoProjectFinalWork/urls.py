@@ -25,7 +25,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, Spec
 from backend.admin_features import admin_search
 from backend.views import (RegisterView, confirm_acc, AccountDetails, login, partner_update,
                            ShopView, BrandView, product_view, PartnerState, BasketView, OrdersView, ContactView,
-                           PartnerOrders, image_upload_view, login_page, ErrorTriggerView, )
+                           PartnerOrders, image_upload_view, login_page, ErrorTriggerView, CategoryView, )
 app_name = 'backend'
 
 urlpatterns = [
@@ -44,6 +44,7 @@ urlpatterns = [
     path('profile', AccountDetails.as_view(), name='profile-settings'),
     path('brand', BrandView.as_view(), name='brands'),
     path('shops', ShopView.as_view(), name='shops'),
+    path('categories', CategoryView.as_view(), name='categories'),
     path('products', product_view, name='shops'),
     path('basket', BasketView.as_view(), name='basket'),
     path('order', OrdersView.as_view(), name='order'),
