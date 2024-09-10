@@ -15,7 +15,7 @@ import django.db.models.signals
 from dotenv import load_dotenv
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
-from django.core.mail import send_mail
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -135,9 +135,8 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-# EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-# EMAIL_USE_TLS = True
 
 EMAIL_HOST = 'smtp.mail.ru'
 
@@ -264,7 +263,7 @@ SOCIAL_AUTH_VK_OAUTH2_KEY = os.getenv('SOCIAL_AUTH_VK_OAUTH2_K')
 SOCIAL_AUTH_VK_OAUTH2_SECRET = os.getenv('SOCIAL_AUTH_VK_OAUTH2_S')
 SOCIAL_AUTH_VK_OAUTH2_SCOPE = ['email']
 SOCIAL_AUTH_VK_OAUTH2_EXTRA_DATA = ['access_token', 'expires', 'id', 'email']
-SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 7 days
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 7
 SESSION_COOKIE_SAMESITE = 'None'
 SESSION_COOKIE_SECURE = True
 LOGIN_REDIRECT_URL = '/'
@@ -357,12 +356,7 @@ THUMBNAIL_ALIASES = {
 
 sentry_sdk.init(
     dsn="https://f0142d8db198b2d5c7d9043b3d6a4fb2@o4507888370057216.ingest.de.sentry.io/4507888372744272",
-    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for tracing.
     traces_sample_rate=1.0,
-    # Set profiles_sample_rate to 1.0 to profile 100%
-    # of sampled transactions.
-    # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,
     integrations=[
         DjangoIntegration(
@@ -382,10 +376,11 @@ sentry_sdk.init(
 def debug_toolbar_show(request):
     return True
 
+
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://redis:6379/1',  # Используй Redis на том же уровне, что и Cacheops
+        'LOCATION': 'redis://redis:6379/1',
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
         }

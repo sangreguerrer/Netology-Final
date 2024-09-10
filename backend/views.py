@@ -21,7 +21,7 @@ from django.db.models import Q, Sum, F
 from ujson import loads as load_json
 
 from .forms import ImageForm
-from .models import ConfirmEmailToken, Category, Shop, ProductInfo, Order, OrderItem, Contact, Brand, User
+from .models import ConfirmEmailToken, Category, Shop, ProductInfo, Order, OrderItem, Contact, Brand
 from .serializers import UserSerializer, CategorySerializer, ShopSerializer, ProductInfoSerializer, OrderSerializer, \
     OrderItemSerializer, ContactSerializer, BrandSerializer, UserDetailsSerializer, ConfirmAccountSerializer, \
     UserAuthSerializer, ErrorResponseSerializer, SuccessResponseSerializer
@@ -30,7 +30,6 @@ from .signals import new_order
 
 def login_page(request):
     return render(request, 'login.html')
-
 
 
 class RegisterView(APIView):
@@ -127,7 +126,11 @@ def confirm_acc(request: Request, *args, **kwargs):
 @api_view(['POST'])
 def login(request, *args, **kwargs):
     """
-    Логика авторизации через email и пароль
+    An authorization endpoint
+    Args:
+        - request (Request): The Django request object, includes in body('email', 'password').
+    Returns:
+        - Response: The key of the user's token.
     """
     required_args = {'email', 'password'}
     if not required_args.issubset(request.data.keys()):
@@ -209,7 +212,7 @@ class AccountDetails(APIView):
         user_serializer = UserDetailsSerializer(request.user, data=request.data, partial=True)
         if user_serializer.is_valid():
             user_serializer.save()
-            return Response(
+            return Response(                # pass this view to celery
                 {'Status': True, 'Message': 'Account updated successfully'},
                 status=status.HTTP_200_OK
             )
@@ -298,8 +301,8 @@ class BrandView(APIView):
 @extend_schema(
     request=CategorySerializer,
     responses={
-            200: CategorySerializer(many=True),
-        },
+        200: CategorySerializer(many=True),
+    },
     description="Retrieve the list of categories."
 )
 class CategoryView(ListAPIView):
@@ -315,8 +318,8 @@ class CategoryView(ListAPIView):
 @extend_schema(
     request=ShopSerializer,
     responses={
-            200: SuccessResponseSerializer(many=True),
-            404: {'description': 'Shop not found.'},
+        200: SuccessResponseSerializer(many=True),
+        404: {'description': 'Shop not found.'},
     },
     description="Retrieve the list of shops."
 )
@@ -331,13 +334,13 @@ class ShopView(ListAPIView):
 
 
 @extend_schema(
-        request=ProductInfoSerializer,
-        responses={
-            200: SuccessResponseSerializer(many=True),
-            400: {'description': 'Bad request, including missing fields and validation errors.'},
-            404: {'description': 'Product not found.'},
-        },
-        description="Retrieve the product information based on the specified filters."
+    request=ProductInfoSerializer,
+    responses={
+        200: SuccessResponseSerializer(many=True),
+        400: {'description': 'Bad request, including missing fields and validation errors.'},
+        404: {'description': 'Product not found.'},
+    },
+    description="Retrieve the product information based on the specified filters."
 )
 @api_view(['GET'])
 def product_view(request, *args, **kwargs):
@@ -432,7 +435,7 @@ class BasketView(APIView):
     )
     def post(self, request, *args, **kwargs):
         """
-        Add items to the user's basket.
+        Add items to the user's basket if they are in stock.
 
         Args:
         - request (Request): The Django request object including in Authorization header('Authorization',Token 'token'),
@@ -452,22 +455,18 @@ class BasketView(APIView):
             except ValueError:
                 return Response({'Status': False, 'Error': 'Invalid JSON format'}, status=400)
 
-            # Начинаем транзакцию
             with transaction.atomic():
                 basket, _ = Order.objects.get_or_create(user_id=request.user.id, state='basket')
                 objects_created = 0
-                errors = []  # Список для хранения ошибок
+                errors = []
 
                 for order_item in items:
                     try:
                         product_info = ProductInfo.objects.get(id=order_item['product_info'])
 
-                        # Проверка на достаточное количество товара
                         if order_item['quantity'] > product_info.quantity:
                             errors.append(f"Недостаточное количество для товара с ID {order_item['product_info']}")
                             continue
-
-                        # Обновление данных для записи в корзину
                         order_item.update({'order': basket.id})
                         serializer = OrderItemSerializer(data=order_item)
 
@@ -504,7 +503,7 @@ class BasketView(APIView):
 
         Args:
         - request (Request): The Django request object including in Authorization header('Authorization',Token 'token')
-        and in the request body('items': [int]).
+        and in the request body('items': int, int).
 
         Returns:
         - Response: The response indicating the status of the operation and any errors.
@@ -554,37 +553,41 @@ class BasketView(APIView):
                 item_dict = load_json(items_string)
             except ValueError:
                 return Response({'Status': False, 'Error': 'Invalid JSON format'}, status=400)
+            else:
+                basket, _ = Order.objects.get_or_create(user_id=request.user.id, state='basket')
+                objects_updated = 0
+                errors = []
 
-            basket, _ = Order.objects.get_or_create(user_id=request.user.id, state='basket')
-            objects_updated = 0
-            errors = []  # Список для сбора ошибок
+                for item in item_dict:
+                    item_id = item.get('id')
+                    item_quantity = item.get('quantity')
 
-            for item in item_dict:
-                if isinstance(item['id'], int) and isinstance(item['quantity'], int):
-                    try:
-                        product_info = ProductInfo.objects.get(id=item['id'])
-                        # Проверка на достаточное количество товара
-                        if item['quantity'] > product_info.quantity:
-                            errors.append(f"Недостаточное количество для товара с ID {item['id']}")
-                            continue
+                    if isinstance(item_id, int) and isinstance(item_quantity, int):
+                        try:
+                            order_item = OrderItem.objects.get(order_id=basket.id, product_info_id=item_id)
 
-                        objects_updated += OrderItem.objects.filter(
-                            order_id=basket.id, product_info_id=item['id']
-                        ).update(quantity=item['quantity'])
+                            product_info = ProductInfo.objects.get(id=item_id)
+                            if item_quantity > product_info.quantity:
+                                errors.append(f"Недостаточное количество для товара с ID {item_id}")
+                                continue
 
-                    except ProductInfo.DoesNotExist:
-                        errors.append(f"Товар с ID {item['id']} не найден")
+                            order_item.quantity = item_quantity
+                            order_item.save()
+                            objects_updated += 1
 
-                else:
-                    errors.append(f"Неверный формат данных для товара с ID {item.get('id', 'не указан')}")
+                        except OrderItem.DoesNotExist:
+                            errors.append(f"Товар с ID {item_id} отсутствует в вашей корзине")
 
-            if objects_updated > 0:
+                        except ProductInfo.DoesNotExist:
+                            errors.append(f"Товар с ID {item_id} не найден в базе данных")
+
+                    else:
+                        errors.append(f"Неверный формат данных для товара с ID {item_id or 'не указан'}")
+
                 response_data = {'Status': True, 'Обновлено объектов': objects_updated}
                 if errors:
                     response_data['Errors'] = errors
                 return Response(response_data, status=200)
-
-            return Response({'Status': False, 'Errors': errors}, status=400 if errors else 200)
 
         return Response({'Status': False, 'Error': 'Не указаны все необходимые аргументы'}, status=400)
 
@@ -620,7 +623,6 @@ def partner_update(request, *args, **kwargs):
         if user_id:
             url = request.data.get('url')
             if url:
-                # pass this view to celery
                 do_import.delay(user_id, url)
                 return Response({'Status': user_id})
             else:
@@ -912,7 +914,6 @@ class OrdersView(APIView):
 
                 try:
                     with transaction.atomic():
-                        # Обновляем состояние заказа
                         is_updated = Order.objects.filter(
                             user_id=request.user.id,
                             id=order_id
@@ -921,15 +922,11 @@ class OrdersView(APIView):
                         if not is_updated:
                             return Response({'Status': False, 'Error': 'Order not found'}, status=404)
 
-                        # Получаем товары из заказа
                         order_items = OrderItem.objects.filter(order_id=order_id)
-                        product_info_ids = order_items.values_list('product_info_id', flat=True)
 
-                        # Подсчитываем общее количество товаров
                         product_quantities = order_items.values('product_info_id').annotate(
                             total_quantity=Sum('quantity'))
 
-                        # Обновляем количество товаров
                         for pq in product_quantities:
                             product_info = ProductInfo.objects.get(id=pq['product_info_id'])
                             product_info.quantity -= pq['total_quantity']
@@ -938,7 +935,6 @@ class OrdersView(APIView):
                             product_info.save()
                             notify_low_stock.delay(product_info.id)
 
-                        # Отправляем сигнал о создании заказа
                         new_order.send(sender=request.user.id, user_id=request.user.id)
                         return Response({'Status': True}, status=200)
 
@@ -956,7 +952,6 @@ def image_upload_view(request):
         form = ImageForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
-            # Get the current instance object to display in the template
             generate_thumbnails.delay(form.instance.image.path)
             img_obj = form.instance
             return render(request, 'images/image.html', {'form': form, 'img_obj': img_obj})
@@ -970,7 +965,6 @@ class ErrorTriggerView(APIView):
     APIView для тестирования Sentry.
     Этот view вызывает исключение, которое будет отправлено в Sentry.
     """
-
     def get(self, request):
         try:
             # Намеренное исключение
@@ -981,4 +975,3 @@ class ErrorTriggerView(APIView):
             # Либо Sentry автоматически зафиксирует это исключение
             raise
         return Response({"message": "This should never be seen!"}, status=status.HTTP_200_OK)
-

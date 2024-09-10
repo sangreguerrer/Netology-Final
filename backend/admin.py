@@ -117,7 +117,6 @@ class OrderItemAdmin(admin.ModelAdmin):
             raise ValidationError(e)
 
 
-# admin.site.register(Image)
 admin.site.register(ProductParameter)
 admin.site.register(ProductInfo)
 admin.site.register(Contact)

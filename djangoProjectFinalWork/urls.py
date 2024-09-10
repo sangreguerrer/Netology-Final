@@ -27,9 +27,6 @@ from backend.views import (RegisterView, confirm_acc, AccountDetails, login, par
                            ShopView, BrandView, product_view, PartnerState, BasketView, OrdersView, ContactView,
                            PartnerOrders, image_upload_view, login_page, ErrorTriggerView, )
 app_name = 'backend'
-# handler404 = 'backend.views.my_custom_page_not_found_view'
-# handler403 = 'backend.views.my_custom_permission_denied_view'
-# handler500 = 'backend.views.my_custom_server_error_view'
 
 urlpatterns = [
     path('sentry-debug/', ErrorTriggerView.as_view()),

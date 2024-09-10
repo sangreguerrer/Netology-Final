@@ -1,0 +1,1373 @@
+openapi: 3.0.3
+info:
+  title: Django Project Final Job
+  version: 1.0.0
+  description: Hi-Tech Shop API
+paths:
+  /basket:
+    get:
+      operationId: basket_retrieve
+      description: Retrieve the items in the user's basket.
+      tags:
+      - basket
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+        '400':
+          content:
+            application/yaml:
+              schema:
+                description: Bad request.
+          description: ''
+        '403':
+          content:
+            application/yaml:
+              schema:
+                description: Log in required.
+          description: ''
+        '404':
+          content:
+            application/yaml:
+              schema:
+                description: Item not found in the basket.
+          description: ''
+    post:
+      operationId: basket_create
+      description: Add items to the user's basket.
+      tags:
+      - basket
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrderItem'
+          application/x-www-form-urlencoded:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrderItem'
+          multipart/form-data:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrderItem'
+          application/yaml:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrderItem'
+        required: true
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+        '400':
+          content:
+            application/yaml:
+              schema:
+                description: Bad request.
+          description: ''
+        '403':
+          content:
+            application/yaml:
+              schema:
+                description: Log in required.
+          description: ''
+    put:
+      operationId: basket_update
+      description: Update the quantity of items in the user's basket.
+      tags:
+      - basket
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrderItem'
+          application/x-www-form-urlencoded:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrderItem'
+          multipart/form-data:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrderItem'
+          application/yaml:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrderItem'
+        required: true
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+        '400':
+          content:
+            application/yaml:
+              schema:
+                description: Bad request.
+          description: ''
+        '403':
+          content:
+            application/yaml:
+              schema:
+                description: Log in required.
+          description: ''
+    delete:
+      operationId: basket_destroy
+      description: Remove items from the user's basket.
+      tags:
+      - basket
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+        '400':
+          content:
+            application/yaml:
+              schema:
+                description: Bad request.
+          description: ''
+        '403':
+          content:
+            application/yaml:
+              schema:
+                description: Log in required.
+          description: ''
+        '404':
+          content:
+            application/yaml:
+              schema:
+                description: Item not found in the basket.
+          description: ''
+  /brand:
+    get:
+      operationId: brand_list
+      description: Retrieve the list of brands.
+      tags:
+      - brand
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/yaml:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Brand'
+          description: ''
+        '404':
+          content:
+            application/yaml:
+              schema:
+                description: Brand not found.
+          description: ''
+    post:
+      operationId: brand_create
+      description: Add a new brand(shops only).
+      tags:
+      - brand
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Brand'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Brand'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Brand'
+          application/yaml:
+            schema:
+              $ref: '#/components/schemas/Brand'
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/Brand'
+          description: ''
+        '400':
+          content:
+            application/yaml:
+              schema:
+                description: Bad request, including missing fields and validation
+                  errors.
+          description: ''
+        '403':
+          content:
+            application/yaml:
+              schema:
+                description: Log in required.
+          description: ''
+    put:
+      operationId: brand_update
+      description: Update brand infos.
+      tags:
+      - brand
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Brand'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Brand'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Brand'
+          application/yaml:
+            schema:
+              $ref: '#/components/schemas/Brand'
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/Brand'
+          description: ''
+        '400':
+          content:
+            application/yaml:
+              schema:
+                description: Bad request, including missing fields and validation
+                  errors.
+          description: ''
+        '403':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: ''
+  /contact:
+    get:
+      operationId: contact_list
+      description: Retrieve the contact information of the authenticated user.
+      tags:
+      - contact
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/yaml:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Contact'
+          description: ''
+        '400':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: ''
+        '403':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: ''
+    post:
+      operationId: contact_create
+      description: Create a new contact for the authenticated user.
+      tags:
+      - contact
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Contact'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Contact'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Contact'
+          application/yaml:
+            schema:
+              $ref: '#/components/schemas/Contact'
+        required: true
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/Contact'
+          description: ''
+        '400':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: ''
+        '403':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: ''
+    put:
+      operationId: contact_update
+      description: Update the contact information of the authenticated user.
+      tags:
+      - contact
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Contact'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Contact'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Contact'
+          application/yaml:
+            schema:
+              $ref: '#/components/schemas/Contact'
+        required: true
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/Contact'
+          description: ''
+        '400':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: ''
+        '403':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: ''
+    delete:
+      operationId: contact_destroy
+      description: Delete the contact of the authenticated user.
+      tags:
+      - contact
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/yaml:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Contact'
+          description: ''
+        '400':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: ''
+        '403':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: ''
+  /order:
+    get:
+      operationId: order_retrieve
+      description: Get an order.
+      tags:
+      - order
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+        '400':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: ''
+        '403':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: ''
+    post:
+      operationId: order_create
+      description: Create a new order.
+      tags:
+      - order
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Order'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Order'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Order'
+          application/yaml:
+            schema:
+              $ref: '#/components/schemas/Order'
+        required: true
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+        '400':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: ''
+        '403':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: ''
+        '404':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: ''
+  /partner/orders:
+    get:
+      operationId: partner_orders_list
+      description: Retrieve the items in the user's basket.
+      tags:
+      - partner
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/yaml:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+          description: ''
+        '403':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: ''
+  /partner/state:
+    get:
+      operationId: partner_state_retrieve
+      description: |-
+        Retrieve the state of the partner.
+
+        Args:
+        - request (Request): The Django request object including in Authorization header('Authorization',Token 'token')
+
+        Returns:
+        - Response: The response containing the state of the partner.
+      tags:
+      - partner
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/Shop'
+          description: ''
+        '403':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: ''
+        '404':
+          content:
+            application/yaml:
+              schema:
+                description: Not found
+          description: ''
+    post:
+      operationId: partner_state_create
+      description: Update the state of a partner.
+      tags:
+      - partner
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Shop'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Shop'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Shop'
+          application/yaml:
+            schema:
+              $ref: '#/components/schemas/Shop'
+        required: true
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/Shop'
+          description: ''
+        '400':
+          content:
+            application/yaml:
+              schema:
+                description: Wrong type
+          description: ''
+        '403':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: ''
+  /partner/update:
+    post:
+      operationId: partner_update_create
+      description: |-
+        A view for updating and addition shops.
+        Methods:
+
+        - post: upload validated goods data.The authorization token is required. The data must be passed in yaml format via
+        raw link  the request body.
+        for example: url: https://raw.githubusercontent.com/netology-code/python-final-diplom/master/data/shop1.yaml
+      tags:
+      - partner
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+          description: ''
+        '403':
+          content:
+            application/yaml:
+              schema:
+                description: Log in required
+          description: ''
+        '404':
+          content:
+            application/yaml:
+              schema:
+                description: Not found
+          description: ''
+  /products:
+    get:
+      operationId: products_list
+      description: Retrieve the product information based on the specified filters.
+      tags:
+      - products
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/yaml:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SuccessResponse'
+          description: ''
+        '400':
+          content:
+            application/yaml:
+              schema:
+                description: Bad request, including missing fields and validation
+                  errors.
+          description: ''
+        '404':
+          content:
+            application/yaml:
+              schema:
+                description: Product not found.
+          description: ''
+  /profile:
+    get:
+      operationId: profile_retrieve
+      description: Retrieve the details of the authenticated user.
+      tags:
+      - profile
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+        '403':
+          content:
+            application/yaml:
+              schema:
+                description: Log in required.
+          description: ''
+    post:
+      operationId: profile_create
+      description: Update the account details of the authenticated user.
+      tags:
+      - profile
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserDetails'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserDetails'
+        required: true
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/yaml:
+              schema:
+                description: Account updated successfully.
+          description: ''
+        '400':
+          content:
+            application/yaml:
+              schema:
+                description: Bad request, including missing fields and validation
+                  errors.
+          description: ''
+        '403':
+          content:
+            application/yaml:
+              schema:
+                description: Log in required.
+          description: ''
+  /register:
+    post:
+      operationId: register_create
+      description: Register a new user by providing necessary information. All fields
+        except 'image' are required.
+      tags:
+      - register
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/yaml:
+              schema:
+                description: User registered successfully.
+          description: ''
+        '400':
+          content:
+            application/yaml:
+              schema:
+                description: Bad request, including missing fields and validation
+                  errors.
+          description: ''
+  /register/confirm:
+    post:
+      operationId: register_confirm_create
+      description: This endpoint allows users to confirm their account by providing
+        an email and a confirmation token.
+      tags:
+      - register
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmAccount'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ConfirmAccount'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ConfirmAccount'
+          application/yaml:
+            schema:
+              $ref: '#/components/schemas/ConfirmAccount'
+        required: true
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/yaml:
+              schema:
+                description: Account confirmed successfully.
+          description: ''
+        '401':
+          content:
+            application/yaml:
+              schema:
+                description: Unauthorized.
+          description: ''
+  /shops:
+    get:
+      operationId: shops_list
+      description: |-
+        The class for view and additions of shops
+        Methods:
+            - get: Retrieve the list of shops.
+      tags:
+      - shops
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/yaml:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Shop'
+          description: ''
+  /user/login:
+    post:
+      operationId: user_login_create
+      description: Authenticate a user by providing their email and password.
+      tags:
+      - user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserAuth'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserAuth'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserAuth'
+          application/yaml:
+            schema:
+              $ref: '#/components/schemas/UserAuth'
+        required: true
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/yaml:
+              schema:
+                description: User logged in successfully.
+          description: ''
+        '401':
+          content:
+            application/yaml:
+              schema:
+                description: Login failed.
+          description: ''
+  /user/reset_password:
+    post:
+      operationId: user_reset_password_create
+      description: |-
+        An Api View which provides a method to request a password reset token based on an e-mail address
+
+        Sends a signal reset_password_token_created when a reset token was created
+      tags:
+      - user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Email'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Email'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Email'
+          application/yaml:
+            schema:
+              $ref: '#/components/schemas/Email'
+        required: true
+      responses:
+        '200':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/Email'
+          description: ''
+  /user/reset_password/confirm:
+    post:
+      operationId: user_reset_password_confirm_create
+      description: An Api View which provides a method to reset a password based on
+        a unique token
+      tags:
+      - user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordToken'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PasswordToken'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordToken'
+          application/yaml:
+            schema:
+              $ref: '#/components/schemas/PasswordToken'
+        required: true
+      responses:
+        '200':
+          content:
+            application/yaml:
+              schema:
+                $ref: '#/components/schemas/PasswordToken'
+          description: ''
+components:
+  schemas:
+    Brand:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          nullable: true
+          maxLength: 200
+        country:
+          type: string
+          nullable: true
+          maxLength: 200
+        email:
+          type: string
+          format: email
+          nullable: true
+          maxLength: 200
+        url:
+          type: string
+          format: uri
+          nullable: true
+          maxLength: 300
+        image:
+          type: string
+          format: uri
+      required:
+      - id
+    BrandRelated:
+      type: object
+      properties:
+        name:
+          type: string
+          nullable: true
+          maxLength: 200
+    ConfirmAccount:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        token:
+          type: string
+      required:
+      - email
+      - token
+    Contact:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        city:
+          type: string
+          title: Город
+          maxLength: 50
+        street:
+          type: string
+          title: Улица
+          maxLength: 150
+        house:
+          type: string
+          title: Дом
+          maxLength: 15
+        structure:
+          type: string
+          title: Корпус
+          maxLength: 15
+        building:
+          type: string
+          title: Строение
+          maxLength: 15
+        apartment:
+          type: string
+          title: Квартира
+          maxLength: 10
+        user:
+          type: integer
+          writeOnly: true
+          title: Пользователь
+        phone:
+          type: string
+          title: Телефон
+          maxLength: 11
+      required:
+      - apartment
+      - building
+      - city
+      - house
+      - id
+      - phone
+      - street
+      - structure
+      - user
+    Email:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required:
+      - email
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: boolean
+        error:
+          type: string
+      required:
+      - error
+      - status
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          type: integer
+          title: Пользователь
+        order_items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItemCreate'
+          readOnly: true
+        state:
+          allOf:
+          - $ref: '#/components/schemas/StateEnum'
+          title: Статус
+        created:
+          type: string
+          format: date-time
+          readOnly: true
+        total_sum:
+          type: integer
+        contact:
+          allOf:
+          - $ref: '#/components/schemas/Contact'
+          readOnly: true
+      required:
+      - contact
+      - created
+      - id
+      - order_items
+      - state
+      - total_sum
+      - user
+    OrderItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        product_info:
+          type: integer
+          title: Информация о продукте
+        quantity:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Количество
+        order:
+          type: integer
+          writeOnly: true
+          title: Заказ
+      required:
+      - id
+      - order
+      - product_info
+      - quantity
+    OrderItemCreate:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        product_info:
+          allOf:
+          - $ref: '#/components/schemas/ProductInfo'
+          readOnly: true
+        quantity:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Количество
+        order:
+          type: integer
+          writeOnly: true
+          title: Заказ
+      required:
+      - id
+      - order
+      - product_info
+      - quantity
+    PasswordToken:
+      type: object
+      properties:
+        password:
+          type: string
+        token:
+          type: string
+      required:
+      - password
+      - token
+    Product:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 150
+        category:
+          type: string
+          readOnly: true
+      required:
+      - category
+      - name
+    ProductInfo:
+      type: object
+      properties:
+        product:
+          allOf:
+          - $ref: '#/components/schemas/Product'
+          readOnly: true
+        model:
+          type: string
+          title: Модель
+          maxLength: 80
+        brand:
+          allOf:
+          - $ref: '#/components/schemas/BrandRelated'
+          readOnly: true
+        shop:
+          type: integer
+          title: Магазин
+        external_id:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Артикул
+        quantity:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Количество
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          title: Цена
+        price_rrc:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          title: Рекомендуемая розничная цена
+        image:
+          type: string
+          format: uri
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductParameter'
+          readOnly: true
+      required:
+      - brand
+      - external_id
+      - parameters
+      - price
+      - price_rrc
+      - product
+      - quantity
+      - shop
+    ProductParameter:
+      type: object
+      properties:
+        parameter:
+          type: string
+          readOnly: true
+        value:
+          type: string
+          title: Значение
+          maxLength: 300
+      required:
+      - parameter
+      - value
+    Shop:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        address:
+          type: string
+          maxLength: 150
+        image:
+          type: string
+          format: uri
+        name:
+          type: string
+          maxLength: 200
+        state:
+          type: boolean
+          title: Статус получения заказов
+      required:
+      - id
+      - name
+    StateEnum:
+      enum:
+      - basket
+      - new
+      - confirmed
+      - assembled
+      - sent
+      - delivered
+      - canceled
+      type: string
+      description: |-
+        * `basket` - Статус корзины
+        * `new` - Новый
+        * `confirmed` - Подтвержден
+        * `assembled` - Собран
+        * `sent` - Отправлен
+        * `delivered` - Доставлен
+        * `canceled` - Отменен
+    SuccessResponse:
+      type: object
+      properties:
+        status:
+          type: boolean
+        message:
+          type: string
+      required:
+      - message
+      - status
+    TypeEnum:
+      enum:
+      - shop
+      - buyer
+      type: string
+      description: |-
+        * `shop` - Магазин
+        * `buyer` - Покупатель
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          title: Email address
+          maxLength: 100
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        password:
+          type: string
+          writeOnly: true
+        password2:
+          type: string
+          writeOnly: true
+        is_active:
+          type: boolean
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
+        type:
+          allOf:
+          - $ref: '#/components/schemas/TypeEnum'
+          title: Тип пользователя
+        image:
+          type: string
+          format: uri
+          writeOnly: true
+        contacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Contact'
+          readOnly: true
+      required:
+      - contacts
+      - email
+      - id
+      - password
+      - password2
+      - username
+    UserAuth:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          title: Email address
+          maxLength: 100
+        password:
+          type: string
+          maxLength: 128
+      required:
+      - email
+      - password
+    UserDetails:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        password:
+          type: string
+          writeOnly: true
+        password2:
+          type: string
+          writeOnly: true
+        is_active:
+          type: boolean
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
+        type:
+          allOf:
+          - $ref: '#/components/schemas/TypeEnum'
+          title: Тип пользователя
+        image:
+          type: string
+          format: uri
+          writeOnly: true
+      required:
+      - id
+      - username
+  securitySchemes:
+    tokenAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Token-based authentication with required prefix "Token"

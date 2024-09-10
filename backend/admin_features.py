@@ -24,7 +24,6 @@ def admin_search(request):
                 'icon': 'fa fa-edit',
             })
 
-        # Add matching brands to the response list
         for brand in brands:
             res.append({
                 'label': f'{brand.name} edit',
@@ -37,4 +36,5 @@ def admin_search(request):
     return JsonResponse({
         'length': len(res),
         'data': res
-    })
+    }
+    )

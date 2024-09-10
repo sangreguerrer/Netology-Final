@@ -23,4 +23,3 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Настройте ENTRYPOINT для выполнения скрипта
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-

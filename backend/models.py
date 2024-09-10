@@ -9,7 +9,6 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.utils.translation import gettext_lazy as _
 from django_rest_passwordreset.tokens import get_token_generator
 from django.utils.text import slugify
-from cacheops import cached_as
 
 
 STATE_CHOICES = (
@@ -26,9 +25,6 @@ USER_TYPE_CHOICES = (
     ('shop', 'Магазин'),
     ('buyer', 'Покупатель'),
 )
-
-# class CustomManager(UserManager):
-#     pass
 
 
 class UserManager(BaseUserManager):
