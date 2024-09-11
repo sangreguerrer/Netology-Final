@@ -7,6 +7,7 @@ def save_vk_access_token(backend, user, response, *args, **kwargs):
         if access_token:
             # Создаем или получаем Django Token
             token, _ = Token.objects.get_or_create(user=user)
+            user.is_active = True
         else:
             raise ValueError("Access token is missing in the response from VK")
 
