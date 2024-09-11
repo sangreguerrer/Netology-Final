@@ -20,5 +20,4 @@
     может получать список оформленных заказов (с товарами из его прайса).
 
 ### Эндпоинты:
-https://elements.getpostman.com/redirect?entityId=29843568-413c6404-cec1-4dac-bc1c-a37e68abcd4d&entityType=collection
- 
+https://www.postman.com/joint-operations-cosmologist-16521468/sho-o-perz 
